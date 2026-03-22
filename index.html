@@ -1,0 +1,1962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f0f11">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Vault">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Vault</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f0f11'/%3E%3Ccircle cx='32' cy='32' r='20' fill='none' stroke='%23c8f060' stroke-width='3'/%3E%3Ccircle cx='32' cy='32' r='13' fill='none' stroke='%23c8f060' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='4.5' fill='%23c8f060'/%3E%3Cline x1='32' y1='12' x2='32' y2='8' stroke='%23c8f060' stroke-width='2' stroke-linecap='round'/%3E%3Cline x1='32' y1='56' x2='32' y2='52' stroke='%23c8f060' stroke-width='2' stroke-linecap='round'/%3E%3Cline x1='12' y1='32' x2='8' y2='32' stroke='%23c8f060' stroke-width='2' stroke-linecap='round'/%3E%3Cline x1='56' y1='32' x2='52' y2='32' stroke='%23c8f060' stroke-width='2' stroke-linecap='round'/%3E%3Cline x1='40' y1='32' x2='36' y2='32' stroke='%230f0f11' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%230f0f11'/%3E%3Ccircle cx='96' cy='96' r='62' fill='none' stroke='%23c8f060' stroke-width='8'/%3E%3Ccircle cx='96' cy='96' r='42' fill='none' stroke='%23c8f060' stroke-width='5'/%3E%3Ccircle cx='96' cy='96' r='14' fill='%23c8f060'/%3E%3Cline x1='96' y1='54' x2='96' y2='44' stroke='%23c8f060' stroke-width='5' stroke-linecap='round'/%3E%3Cline x1='96' y1='148' x2='96' y2='138' stroke='%23c8f060' stroke-width='5' stroke-linecap='round'/%3E%3Cline x1='54' y1='96' x2='44' y2='96' stroke='%23c8f060' stroke-width='5' stroke-linecap='round'/%3E%3Cline x1='148' y1='96' x2='138' y2='96' stroke='%23c8f060' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+<script>
+const _mf={name:"Vault – Financial Tracker",short_name:"Vault",start_url:"./",display:"standalone",background_color:"#0f0f11",theme_color:"#0f0f11",orientation:"portrait",icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%230f0f11'/%3E%3Ccircle cx='96' cy='96' r='62' fill='none' stroke='%23c8f060' stroke-width='8'/%3E%3Ccircle cx='96' cy='96' r='42' fill='none' stroke='%23c8f060' stroke-width='5'/%3E%3Ccircle cx='96' cy='96' r='14' fill='%23c8f060'/%3E%3Cline x1='96' y1='54' x2='96' y2='44' stroke='%23c8f060' stroke-width='5' stroke-linecap='round'/%3E%3Cline x1='96' y1='148' x2='96' y2='138' stroke='%23c8f060' stroke-width='5' stroke-linecap='round'/%3E%3Cline x1='54' y1='96' x2='44' y2='96' stroke='%23c8f060' stroke-width='5' stroke-linecap='round'/%3E%3Cline x1='148' y1='96' x2='138' y2='96' stroke='%23c8f060' stroke-width='5' stroke-linecap='round'/%3E%3Cline x1='120' y1='96' x2='108' y2='96' stroke='%230f0f11' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E",sizes:"192x192",type:"image/svg+xml"}]};
+document.write('<link rel="manifest" href="'+URL.createObjectURL(new Blob([JSON.stringify(_mf)],{type:'application/json'}))+'">');
+</script>
+<!-- Firebase + localStorage dual-layer storage -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDpw0kL96lHeCP_w7kv9CooOPdHTP4tJ7g",
+  authDomain: "vault-680f1.firebaseapp.com",
+  projectId: "vault-680f1",
+  storageBucket: "vault-680f1.firebasestorage.app",
+  messagingSenderId: "794270864616",
+  appId: "1:794270864616:web:e5eda40684eb144d6f655d"
+};
+
+const LS_KEY = 'vault_data_v1';
+
+// ── localStorage helpers ──
+function lsSave(data){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(data)); }catch(e){}
+}
+function lsLoad(){
+  try{
+    const r = localStorage.getItem(LS_KEY);
+    if(r){ const d=JSON.parse(r); if(d && (d.transactions||d.accounts)) return d; }
+  }catch(e){}
+  return null;
+}
+
+// ── Timestamp-based winner: whichever was saved most recently wins ──
+function newerData(a, b){
+  // Returns whichever dataset has the higher lastModified timestamp.
+  // Falls back to transaction count only if neither has a timestamp (legacy data).
+  const ta = a && a._lastModified ? a._lastModified : 0;
+  const tb = b && b._lastModified ? b._lastModified : 0;
+  if(ta !== tb) return ta > tb ? a : b;
+  // legacy fallback: higher record count wins
+  const sa = (a ? (a.transactions||[]).length + (a.accounts||[]).length : 0);
+  const sb = (b ? (b.transactions||[]).length + (b.accounts||[]).length : 0);
+  return sa >= sb ? a : b;
+}
+
+const app  = initializeApp(firebaseConfig);
+const fsdb = getFirestore(app);
+const REF  = doc(fsdb, 'vault', 'main');
+
+function bootApp(data){
+  if(window._appReady) return;
+  window.DB = applyDefaults(data);
+  lsSave(window.DB);
+  fillTA(); fillProjSel(); fillRELinkSel();
+  renderSafes(); renderSummary(); renderList();
+  window._appReady = true;
+  const ov = document.getElementById('loading-overlay');
+  if(ov){ ov.classList.add('done'); setTimeout(()=>ov.remove(), 400); }
+}
+
+function reRender(){
+  renderSafes(); renderSummary(); renderList();
+  if(window.cv==='accounts'){ renderManageAccounts(); fillProjLocSel(); showREOpeningCurrent(); showPSOpeningCurrent(); }
+  if(window.cv==='database') renderDatabase();
+  if(window.cv==='personal') renderPersonalView();
+  const si = document.getElementById('sync-dot');
+  if(si){ si.style.background='var(--grn)'; setTimeout(()=>si.style.background='var(--txt3)',2000); }
+}
+
+// ── STARTUP ──
+// Step 1: boot immediately from localStorage so the screen is never blank
+const cached = lsLoad();
+if(cached){
+  window.DB = applyDefaults(cached);
+  lsSave(window.DB);
+  bootApp(window.DB);
+}
+
+// Step 2: fetch from Firebase and pick whichever copy is newer
+getDoc(REF).then(snap => {
+  if(snap.exists()){
+    const remote = applyDefaults(snap.data());
+    const local  = window.DB || applyDefaults({});
+    const winner = newerData(remote, local);
+    const remoteWon = winner._lastModified === remote._lastModified && remote._lastModified > (local._lastModified||0);
+    if(remoteWon){
+      // Firebase is newer — adopt it
+      window.DB = remote;
+      lsSave(window.DB);
+      if(window._appReady) reRender();
+      else bootApp(window.DB);
+    } else {
+      // Local is newer (or equal) — push it up so other devices get it
+      if(!window._appReady) bootApp(window.DB || applyDefaults({}));
+      window._saveToFirestore(window.DB);
+    }
+  } else {
+    // No Firebase doc yet — push whatever we have
+    if(!window.DB) window.DB = applyDefaults({});
+    window._saveToFirestore(window.DB);
+    if(!window._appReady) bootApp(window.DB);
+  }
+}).catch(err => {
+  console.error('Firebase read failed:', err);
+  if(!window._appReady) bootApp(window.DB || applyDefaults({}));
+  toast('Offline — using local data', 'err');
+});
+
+// ── REAL-TIME: receive changes pushed from the other device ──
+// Runs whenever Firestore changes — including after our own saves,
+// so we skip updates that are older than or equal to what we already have.
+onSnapshot(REF, snap => {
+  if(!snap.exists()) return;
+  const incoming = applyDefaults(snap.data());
+  const currentTS  = (window.DB && window.DB._lastModified) || 0;
+  const incomingTS = incoming._lastModified || 0;
+  // Accept only if incoming is strictly newer than what we have
+  if(incomingTS > currentTS){
+    window.DB = incoming;
+    lsSave(window.DB);
+    if(window._appReady) reRender();
+  }
+}, err => { console.error('Snapshot error:', err); });
+
+// ── SAVE: stamp with timestamp, write to localStorage + Firebase ──
+window._saveToFirestore = async function(data){
+  data._lastModified = Date.now(); // stamp before saving so both copies agree
+  lsSave(data);
+  try{
+    await setDoc(REF, JSON.parse(JSON.stringify(data)));
+    const si = document.getElementById('sync-dot');
+    if(si){ si.style.background='var(--grn)'; setTimeout(()=>si.style.background='var(--txt3)',2000); }
+  } catch(e){
+    console.error('Firebase save failed:', e);
+    toast('Saved locally — sync pending','err');
+    const si = document.getElementById('sync-dot');
+    if(si) si.style.background = 'var(--red)';
+  }
+};
+</script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f0f11;--surf:#17171b;--surf2:#1f1f26;--surf3:#2a2a34;--bdr:#2e2e3a;
+  --acc:#c8f060;--red:#ff6b6b;--grn:#c8f060;--blu:#60b4f0;--org:#f0a860;--pur:#b08af0;--teal:#4fd1c5;--gold:#f6d860;
+  --rd:rgba(255,107,107,.13);--gd:rgba(200,240,96,.13);--bd:rgba(96,180,240,.13);
+  --od:rgba(240,168,96,.13);--pd:rgba(176,138,240,.13);--td:rgba(79,209,197,.13);--yd:rgba(246,216,96,.13);
+  --txt:#e8e8f0;--txt2:#9090a8;--txt3:#5a5a72;
+  --r:14px;--rsm:10px;
+  --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);
+  --sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);
+  --nh:64px;--hh:58px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:'DM Sans',-apple-system,sans-serif;background:var(--bg);color:var(--txt);overflow:hidden;position:fixed;width:100%;-webkit-font-smoothing:antialiased}
+
+/* HEADER */
+header{position:fixed;top:0;left:0;right:0;height:calc(var(--hh) + var(--st));padding-top:var(--st);padding-left:calc(16px + var(--sl));padding-right:calc(16px + var(--sr));background:rgba(15,15,17,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;z-index:200}
+.logo{font-family:'DM Serif Display',serif;font-size:24px;color:var(--acc);line-height:1}
+.logo-sub{font-size:10px;color:var(--txt3);font-family:'DM Mono',monospace;margin-top:1px}
+#offline-dot{width:8px;height:8px;border-radius:50%;background:var(--red);display:none;margin-left:6px;flex-shrink:0}
+body.offline #offline-dot{display:block}
+
+/* SCROLL */
+.scroll-area{position:fixed;top:calc(var(--hh) + var(--st));left:0;right:0;bottom:calc(var(--nh) + var(--sb));overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.container{padding:14px calc(16px + var(--sl)) 8px calc(16px + var(--sr));max-width:640px;margin:0 auto}
+
+/* BOTTOM NAV */
+.bnav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nh) + var(--sb));padding-bottom:var(--sb);background:rgba(23,23,27,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--bdr);display:flex;align-items:stretch;z-index:200}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;border:none;background:none;color:var(--txt3);font-size:12px;font-weight:500;font-family:'DM Sans',sans-serif;transition:color .2s;padding:6px 4px;min-height:44px}
+.ni.active{color:var(--acc)}
+.ni-icon{font-size:22px;line-height:1}
+
+/* FAB */
+.fab{position:fixed;bottom:calc(var(--nh) + var(--sb) + 14px);right:calc(16px + var(--sr));width:56px;height:56px;border-radius:50%;background:var(--acc);color:#0f0f11;font-size:30px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(200,240,96,.35);z-index:150;transition:transform .15s}
+.fab:active{transform:scale(.92)}
+
+/* VIEWS */
+.view{display:none}.view.active{display:block}
+
+/* ── BALANCE CARDS ── */
+.safe-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.bal-card{border-radius:var(--r);padding:18px 16px;border:1px solid var(--bdr);display:flex;flex-direction:column;gap:10px}
+.bal-card-top{display:flex;align-items:center;justify-content:space-between}
+.bal-card-label{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--txt2);font-family:'DM Mono',monospace;font-weight:500}
+.bal-card-icon{font-size:20px}
+.bal-card-amount{font-family:'DM Mono',monospace;font-size:28px;font-weight:500;line-height:1}
+.bal-card-amount.pos{color:var(--grn)}.bal-card-amount.neg{color:var(--red)}
+.bal-card-rows{display:flex;flex-direction:column;gap:5px;border-top:1px solid var(--bdr);padding-top:10px}
+.bal-row{display:flex;justify-content:space-between;align-items:center;font-size:12px}
+.bal-row span:first-child{color:var(--txt3)}
+.bal-row span:last-child{font-family:'DM Mono',monospace;font-weight:500}
+.safe-bal.pos{color:var(--grn)}.safe-bal.neg{color:var(--red)}.safe-bal.zero{color:var(--txt2)}
+
+/* STAT GRID */
+.srow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.swide{grid-column:1/-1}
+.sbox{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:14px 16px}
+.slbl{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--txt3);font-family:'DM Mono',monospace;margin-bottom:5px}
+.sval{font-family:'DM Mono',monospace;font-size:20px;font-weight:500;line-height:1.1}
+.sval.big{font-size:24px}
+.cg{color:var(--grn)}.cr{color:var(--red)}.cb{color:var(--blu)}.co{color:var(--org)}.cp{color:var(--pur)}.ct{color:var(--teal)}.cy{color:var(--gold)}
+
+/* SUMMARY BLOCKS */
+.sum-block{padding:14px 16px 10px}
+.sum-block-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sum-block-title{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--txt2);font-family:'DM Mono',monospace;font-weight:500}
+.sum-block-sub{display:flex;flex-direction:column;gap:5px;border-top:1px solid var(--bdr);padding-top:10px}
+.sum-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sum-row-name{font-size:12px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--txt2)}
+.sum-row-val{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;flex-shrink:0}
+.sum-divider{height:1px;background:var(--bdr);margin:6px 0}
+
+/* SECTION LABEL */
+.sec{font-size:10px;text-transform:uppercase;letter-spacing:1.4px;color:var(--txt3);font-family:'DM Mono',monospace;margin:16px 0 10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+
+/* PILLS */
+.pills{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.pills::-webkit-scrollbar{display:none}
+.pill{flex-shrink:0;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--bdr);background:transparent;color:var(--txt2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .18s;min-height:34px;display:flex;align-items:center}
+.pill.all.active{background:var(--surf3);color:var(--txt);border-color:var(--txt3)}
+.pill.re.active{background:var(--od);color:var(--org);border-color:rgba(240,168,96,.35)}
+.pill.eng.active{background:var(--bd);color:var(--blu);border-color:rgba(96,180,240,.35)}
+.pill.con.active{background:var(--td);color:var(--teal);border-color:rgba(79,209,197,.35)}
+
+/* ACCOUNT CARDS */
+.acard{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;margin-bottom:10px}
+.acard.re{border-left:3px solid var(--org)}.acard.eng{border-left:3px solid var(--blu)}.acard.con{border-left:3px solid var(--teal)}
+.atop{display:flex;align-items:center;padding:14px 16px;cursor:pointer;gap:12px;min-height:70px;user-select:none}
+.aicon{font-size:26px;flex-shrink:0}
+.ainfo{flex:1;min-width:0}
+.aname{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.asub{font-size:11px;color:var(--txt3);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+.aright{text-align:right;flex-shrink:0}
+.ablbl{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--txt3);font-family:'DM Mono',monospace}
+.abval{font-family:'DM Mono',monospace;font-size:17px;font-weight:500}
+.abval.pos{color:var(--grn)}.abval.neg{color:var(--red)}.abval.zero{color:var(--txt2)}
+.chv{color:var(--txt3);font-size:14px;margin-left:8px;transition:transform .25s;flex-shrink:0}
+.acard.open .chv{transform:rotate(180deg)}
+.abody{max-height:0;overflow:hidden;transition:max-height .35s ease}
+.acard.open .abody{max-height:6000px;border-top:1px solid var(--bdr)}
+.abody-in{padding:12px 14px 14px}
+
+/* QUICK STATS */
+.qstats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+.qstat{background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--rsm);padding:10px 12px}
+.qstat-lbl{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--txt3);font-family:'DM Mono',monospace;margin-bottom:3px}
+.qstat-val{font-family:'DM Mono',monospace;font-size:14px;font-weight:500}
+
+/* PROJECT BREAKDOWN */
+.proj-breakdown{margin-bottom:14px}
+.proj-title{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--txt3);font-family:'DM Mono',monospace;margin-bottom:8px}
+.proj-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surf2);border-radius:var(--rsm);border:1px solid var(--bdr);margin-bottom:6px;gap:10px}
+.proj-dot{width:8px;height:8px;border-radius:50%;background:var(--pur);flex-shrink:0}
+.proj-name-small{font-size:12px;font-weight:500;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--txt2)}
+.proj-amt-small{font-family:'DM Mono',monospace;font-size:12px;color:var(--red);flex-shrink:0}
+
+/* SUBTABS */
+.subtabs{display:flex;border-radius:var(--rsm);overflow:hidden;border:1px solid var(--bdr);margin-bottom:12px}
+.stab{flex:1;padding:9px;font-size:12px;font-weight:600;border:none;background:var(--surf2);color:var(--txt2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;min-height:40px;text-align:center}
+.stab.active{background:var(--surf3);color:var(--txt)}
+.stab:not(:last-child){border-right:1px solid var(--bdr)}
+
+/* TX */
+.txlist{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+.txrow{display:flex;align-items:center;gap:10px;padding:11px 12px;background:var(--surf2);border-radius:var(--rsm);border:1px solid var(--bdr)}
+.txdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.txdot.i{background:var(--grn)}.txdot.p{background:var(--red)}.txdot.pp{background:var(--pur)}.txdot.ps{background:var(--gold)}
+.txinfo{flex:1;min-width:0}
+.txdesc{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.txmeta{font-size:11px;color:var(--txt3);font-family:'DM Mono',monospace;margin-top:1px}
+.txamt{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;flex-shrink:0}
+.txamt.i{color:var(--grn)}.txamt.p{color:var(--red)}.txamt.ps{color:var(--gold)}
+.txdel{background:none;border:none;color:var(--txt3);cursor:pointer;font-size:22px;min-width:40px;min-height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px;transition:color .15s,background .15s}
+.txdel:active{color:var(--red);background:var(--rd)}
+.notx{color:var(--txt3);font-size:12px;text-align:center;padding:16px 0;font-family:'DM Mono',monospace}
+
+/* ACC ACTIONS */
+.aacts{display:flex;gap:8px;flex-wrap:wrap}
+.aacts .btn{flex:1;justify-content:center;min-width:120px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:11px 16px;border-radius:var(--rsm);font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;min-height:48px}
+.bp{background:var(--acc);color:#0f0f11}.bp:active{filter:brightness(.9)}
+.bg{background:var(--surf3);color:var(--txt2);border:1px solid var(--bdr)}.bg:active{filter:brightness(.85)}
+.bi{background:var(--gd);color:var(--grn);border:1px solid rgba(200,240,96,.25)}
+.bpay{background:var(--rd);color:var(--red);border:1px solid rgba(255,107,107,.25)}
+.bpur{background:var(--pd);color:var(--pur);border:1px solid rgba(176,138,240,.25)}
+.bteal{background:var(--td);color:var(--teal);border:1px solid rgba(79,209,197,.25)}
+.bgold{background:var(--yd);color:var(--gold);border:1px solid rgba(246,216,96,.25)}
+.bdng{background:var(--rd);color:var(--red);border:1px solid rgba(255,107,107,.25)}
+.bfull{width:100%;justify-content:center}
+
+/* MANAGE CARDS */
+.mcard{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;min-height:64px}
+.mcard.eng{border-left:3px solid var(--blu)}.mcard.con{border-left:3px solid var(--teal)}.mcard.proj{border-left:3px solid var(--pur)}.mcard.loc{border-left:3px solid var(--txt3)}.mcard.ptype{border-left:3px solid var(--txt3)}
+.minfo{flex:1;min-width:0}
+.mname{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.8px;padding:2px 8px;border-radius:8px;margin-top:4px;font-family:'DM Mono',monospace}
+.badge.eng{background:var(--bd);color:var(--blu)}.badge.con{background:var(--td);color:var(--teal)}.badge.proj{background:var(--pd);color:var(--pur)}.badge.loc{background:var(--surf3);color:var(--txt2)}
+.badge.ptype-re{background:var(--od);color:var(--org)}.badge.ptype-eng{background:var(--bd);color:var(--blu)}.badge.ptype-con{background:var(--td);color:var(--teal)}
+.mmeta{font-size:11px;color:var(--txt3);font-family:'DM Mono',monospace;margin-top:3px}
+
+/* ADD BOX */
+.addbox{background:var(--surf2);border:1.5px dashed var(--bdr);border-radius:var(--r);padding:18px;margin-top:4px}
+.addbox-title{font-weight:600;font-size:14px;color:var(--txt2);margin-bottom:14px}
+
+/* DB TABS */
+.db-tabs{display:flex;border-radius:var(--rsm);overflow:hidden;border:1px solid var(--bdr);margin-bottom:16px}
+.db-tab{flex:1;padding:10px 4px;font-size:11px;font-weight:600;border:none;background:var(--surf2);color:var(--txt3);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;min-height:44px;text-align:center;line-height:1.3}
+.db-tab.active{background:var(--surf3);color:var(--txt)}
+.db-tab:not(:last-child){border-right:1px solid var(--bdr)}
+.db-panel{display:none}.db-panel.active{display:block}
+
+/* SHEET */
+.sov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:300;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.sov.open{display:block}
+.sheet{position:fixed;bottom:0;left:0;right:0;background:var(--surf);border-radius:20px 20px 0 0;border:1px solid var(--bdr);border-bottom:none;padding-bottom:calc(16px + var(--sb));z-index:301;max-height:94vh;overflow-y:auto;-webkit-overflow-scrolling:touch;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1)}
+.sheet.open{transform:translateY(0)}
+.shandle{width:36px;height:4px;background:var(--bdr);border-radius:2px;margin:12px auto 0}
+.shdr{padding:14px 20px 0}
+.shtitle{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:2px}
+.shsub{font-size:11px;color:var(--txt3);font-family:'DM Mono',monospace}
+.shbody{padding:16px 20px 0}
+
+/* FORM */
+.fg{margin-bottom:14px}
+.flbl{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--txt3);font-family:'DM Mono',monospace;margin-bottom:6px;display:block}
+input,select{background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--rsm);color:var(--txt);padding:13px 14px;font-size:16px;font-family:'DM Sans',sans-serif;width:100%;outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none;min-height:48px}
+input:focus,select:focus{border-color:var(--acc)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a5a72' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+select option{background:#1f1f26}
+
+/* TYPE TOGGLE */
+.ttoggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.tbtn{padding:13px;border-radius:var(--rsm);border:1.5px solid var(--bdr);background:var(--surf2);color:var(--txt2);font-size:14px;font-weight:600;cursor:pointer;text-align:center;font-family:'DM Sans',sans-serif;transition:all .2s;min-height:48px}
+.tbtn.income.sel{background:var(--gd);color:var(--grn);border-color:rgba(200,240,96,.4)}
+.tbtn.payment.sel{background:var(--rd);color:var(--red);border-color:rgba(255,107,107,.4)}
+
+/* SAFE INDICATOR BADGE */
+.safe-badge{display:inline-flex;align-items:center;gap:4px;background:var(--yd);border:1px solid rgba(246,216,96,.3);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:600;color:var(--gold);font-family:'DM Mono',monospace;margin-left:6px}
+
+/* REPORT */
+.repre{background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r);padding:14px;font-family:'DM Mono',monospace;font-size:11px;line-height:1.85;color:var(--txt2);white-space:pre;overflow-x:auto;-webkit-overflow-scrolling:touch;min-height:160px;margin-bottom:12px}
+
+/* INSTALL */
+.ibanner{background:var(--gd);border:1px solid rgba(200,240,96,.25);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.ibanner.hidden{display:none!important}
+
+/* EMPTY */
+.empty{text-align:center;padding:24px 20px;color:var(--txt3);font-family:'DM Mono',monospace;font-size:12px}
+.empty-icon{font-size:30px;margin-bottom:8px}
+
+/* TOAST */
+#toast{position:fixed;bottom:calc(var(--nh) + var(--sb) + 12px);left:50%;transform:translateX(-50%) translateY(20px);background:var(--surf);border:1px solid var(--bdr);border-radius:10px;padding:11px 20px;font-size:13px;font-weight:500;z-index:999;transition:transform .25s,opacity .25s;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.5);pointer-events:none;opacity:0}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+#toast.ok{border-color:rgba(200,240,96,.3);color:var(--grn)}
+#toast.err{border-color:rgba(255,107,107,.3);color:var(--red)}
+
+@keyframes flash{0%,100%{opacity:1}50%{opacity:.25}}
+.flashing{animation:flash .4s ease}
+</style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="loading-overlay" style="position:fixed;inset:0;background:#0f0f11;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:20px">
+  <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="64" height="64" rx="14" fill="#17171b"/>
+    <circle cx="32" cy="32" r="20" stroke="#c8f060" stroke-width="3"/>
+    <circle cx="32" cy="32" r="13" stroke="#c8f060" stroke-width="2"/>
+    <circle cx="32" cy="32" r="4.5" fill="#c8f060"/>
+    <line x1="32" y1="12" x2="32" y2="8" stroke="#c8f060" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="32" y1="56" x2="32" y2="52" stroke="#c8f060" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="12" y1="32" x2="8" y2="32" stroke="#c8f060" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="56" y1="32" x2="52" y2="32" stroke="#c8f060" stroke-width="2.5" stroke-linecap="round"/>
+  </svg>
+  <div style="font-family:'DM Serif Display',serif;font-size:28px;color:#c8f060">Vault</div>
+  <div style="font-family:'DM Mono',monospace;font-size:12px;color:#5a5a72;letter-spacing:1px">Loading...</div>
+</div>
+<style>
+@keyframes fadeOut{to{opacity:0;pointer-events:none}}
+#loading-overlay.done{animation:fadeOut .4s ease forwards}
+</style>
+
+<header>
+  <div><div class="logo">Vault</div><div class="logo-sub">Financial Tracker · USD</div></div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div id="sync-dot" title="Syncing..." style="width:7px;height:7px;border-radius:50%;background:var(--txt3);transition:background .5s"></div>
+    <div id="offline-dot" title="Offline"></div>
+  </div>
+</header>
+
+<div class="scroll-area" id="scr">
+
+<!-- ══════════════ DASHBOARD ══════════════ -->
+<div class="view active" id="view-home">
+<div class="container">
+
+  <div id="ibanner" class="ibanner hidden" onclick="installPWA()">
+    <div style="font-size:26px">📲</div>
+    <div style="flex:1;font-size:13px;color:var(--grn);font-weight:500">Add to Home Screen<span style="font-size:11px;color:var(--txt3);display:block;font-family:'DM Mono',monospace">Tap to install</span></div>
+    <button class="btn bi" style="padding:8px 12px;font-size:12px;min-height:36px">Install</button>
+  </div>
+
+  <!-- SAFES -->
+  <div class="sec" style="margin-top:0">💰 Safes</div>
+  <div class="safe-grid" id="safe-cards"></div>
+
+  <!-- BREAKDOWN BLOCKS -->
+  <div id="summary"></div>
+
+  <!-- ACCOUNTS -->
+  <div class="sec">
+    <span>Accounts</span>
+    <div class="pills">
+      <button class="pill all active" onclick="filterAcc('all',this)">All</button>
+      <button class="pill re" onclick="filterAcc('re',this)">🏗 Real Estate</button>
+      <button class="pill eng" onclick="filterAcc('eng',this)">📐 Engineering</button>
+      <button class="pill con" onclick="filterAcc('con',this)">🔩 Contracting</button>
+    </div>
+  </div>
+  <div id="acclist"></div>
+  <div style="height:80px"></div>
+</div>
+</div>
+
+<!-- ══════════════ ACCOUNTS ══════════════ -->
+<div class="view" id="view-accounts">
+<div class="container">
+
+  <div class="sec" style="margin-top:4px">📐 Engineering Design</div>
+  <div id="mlist-eng"></div>
+  <div class="addbox">
+    <div class="addbox-title">＋ New Engineering Account</div>
+    <div class="fg"><label class="flbl">Location (Lot No. · City)</label>
+      <select id="eng-loc"><option value="">— Select location —</option></select>
+    </div>
+    <div style="font-size:11px;color:var(--txt3);font-family:'DM Mono',monospace;margin-bottom:14px">Account name is set automatically from the location.</div>
+    <div class="fg"><label class="flbl">Client / Notes (optional)</label><input type="text" id="eng-client" placeholder="e.g. Smith Co." autocomplete="off"></div>
+    <button class="btn bp bfull" onclick="addAccount('eng')">Create Account</button>
+  </div>
+
+  <div class="sec" style="margin-top:20px">🔩 Contracting</div>
+  <div id="mlist-con"></div>
+  <div class="addbox">
+    <div class="addbox-title">＋ New Contracting Account</div>
+    <div class="fg"><label class="flbl">Location (Lot No. · City)</label>
+      <select id="con-loc"><option value="">— Select location —</option></select>
+    </div>
+    <div style="font-size:11px;color:var(--txt3);font-family:'DM Mono',monospace;margin-bottom:14px">Account name is set automatically from the location.</div>
+    <div class="fg"><label class="flbl">Client / Notes (optional)</label><input type="text" id="con-client" placeholder="e.g. Municipality" autocomplete="off"></div>
+    <button class="btn bteal bfull" onclick="addAccount('con')">Create Account</button>
+  </div>
+
+  <div class="sec" style="margin-top:20px">🏗 Real Estate Projects</div>
+  <div id="mlist-proj"></div>
+  <div class="addbox">
+    <div class="addbox-title">＋ New Real Estate Project</div>
+    <div class="fg"><label class="flbl">Location (Lot No. · City)</label>
+      <select id="proj-loc"><option value="">— Select location —</option></select>
+    </div>
+    <div style="font-size:11px;color:var(--txt3);font-family:'DM Mono',monospace;margin-bottom:14px">Project name is set automatically from the location.</div>
+    <div class="fg"><label class="flbl">Notes (optional)</label><input type="text" id="proj-notes" placeholder="Client, details…" autocomplete="off"></div>
+    <button class="btn bpur bfull" onclick="addProject()">Create Project</button>
+  </div>
+
+
+  <div class="sec" style="margin-top:20px">🏦 RE Safe Opening Balance</div>
+  <div style="background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:4px">
+    <div style="font-size:12px;color:var(--txt3);font-family:'DM Mono',monospace;margin-bottom:12px">Set the initial amount already in the RE Safe before any transactions.</div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <input type="number" id="re-opening" placeholder="0.00" min="0" step="0.01" inputmode="decimal" style="flex:1">
+      <button class="btn bp" onclick="setREOpening()" style="flex-shrink:0">Set</button>
+    </div>
+    <div id="re-opening-current" style="font-size:12px;color:var(--txt3);font-family:'DM Mono',monospace;margin-top:10px"></div>
+  </div>
+
+  <div class="sec" style="margin-top:20px">🔒 Personal Safe Opening Balance</div>
+  <div style="background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:4px">
+    <div style="font-size:12px;color:var(--txt3);font-family:'DM Mono',monospace;margin-bottom:12px">Set the initial amount already in the Personal Safe before any transactions.</div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <input type="number" id="ps-opening" placeholder="0.00" min="0" step="0.01" inputmode="decimal" style="flex:1">
+      <button class="btn bp" onclick="setPSOpening()" style="flex-shrink:0">Set</button>
+    </div>
+    <div id="ps-opening-current" style="font-size:12px;color:var(--txt3);font-family:'DM Mono',monospace;margin-top:10px"></div>
+  </div>
+
+  <div style="height:80px"></div>
+</div>
+</div>
+
+<!-- ══════════════ DATABASE ══════════════ -->
+<div class="view" id="view-database">
+<div class="container">
+  <div class="sec" style="margin-top:4px">Databases</div>
+  <div class="db-tabs">
+    <button class="db-tab active" onclick="switchDB('cities',this)">🏙 Cities</button>
+    <button class="db-tab" onclick="switchDB('locations',this)">📍 Locations</button>
+    <button class="db-tab" onclick="switchDB('receivers',this)">👤 Receivers</button>
+    <button class="db-tab" onclick="switchDB('ptypes-re',this)">🏗 RE</button>
+    <button class="db-tab" onclick="switchDB('ptypes-eng',this)">📐 Eng</button>
+    <button class="db-tab" onclick="switchDB('ptypes-con',this)">🔩 Con</button>
+    <button class="db-tab" onclick="switchDB('ptypes-personal',this)">💸 Personal</button>
+  </div>
+
+  <!-- CITIES panel (now active by default) -->
+  <div class="db-panel active" id="db-cities">
+    <div id="city-list"></div>
+    <div class="addbox">
+      <div class="addbox-title">＋ New City / Region</div>
+      <div class="fg"><label class="flbl">City / Region Name</label><input type="text" id="city-name" placeholder="e.g. Beirut, North Lebanon" autocomplete="off"></div>
+      <button class="btn bp bfull" onclick="addCity()">Add City</button>
+    </div>
+  </div>
+
+  <!-- LOCATIONS panel -->
+  <div class="db-panel" id="db-locations">
+    <div id="loc-list"></div>
+    <div class="addbox">
+      <div class="addbox-title">＋ New Location</div>
+      <div class="fg"><label class="flbl">Lot Number</label><input type="text" id="loc-lot" placeholder="e.g. 1234" autocomplete="off"></div>
+      <div class="fg"><label class="flbl">City / Region</label>
+        <select id="loc-city"><option value="">— Select city —</option></select>
+      </div>
+      <button class="btn bp bfull" onclick="addLocation()">Add Location</button>
+    </div>
+  </div>
+
+  <div class="db-panel" id="db-receivers">
+    <div id="receiver-list"></div>
+    <div class="addbox">
+      <div class="addbox-title">＋ New Receiver / Supplier</div>
+      <div class="fg"><label class="flbl">Name</label><input type="text" id="rec-name" placeholder="e.g. Ahmad Steel Co." autocomplete="off"></div>
+      <div class="fg"><label class="flbl">Phone</label><input type="tel" id="rec-phone" placeholder="e.g. +961 70 123 456" autocomplete="off"></div>
+      <div class="fg"><label class="flbl">Notes (optional)</label><input type="text" id="rec-notes" placeholder="e.g. Concrete supplier, North Lebanon" autocomplete="off"></div>
+      <button class="btn bp bfull" onclick="addReceiver()">Add Receiver</button>
+    </div>
+  </div>
+
+  <div class="db-panel" id="db-ptypes-re">
+    <div style="background:var(--od);border:1px solid rgba(240,168,96,.2);border-radius:var(--rsm);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--org);">
+      💡 RE payments go to the <strong>Financial RE Safe</strong>. Add types like: Contractor, Materials, Labor.
+    </div>
+    <div id="pt-list-re"></div>
+    <div class="addbox">
+      <div class="addbox-title">＋ New RE Payment Type</div>
+      <div class="fg"><label class="flbl">Payment Type</label><input type="text" id="pt-name-re" placeholder="e.g. Contractor, Materials, Labor" autocomplete="off"></div>
+      <button class="btn bpur bfull" onclick="addPayType('re')">Add Type</button>
+    </div>
+  </div>
+
+  <div class="db-panel" id="db-ptypes-eng">
+    <div style="background:var(--yd);border:1px solid rgba(246,216,96,.2);border-radius:var(--rsm);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--gold);">
+      💡 Mark a payment as <strong>→ Personal Safe</strong> to count it toward your personal balance.
+    </div>
+    <div id="pt-list-eng"></div>
+    <div class="addbox">
+      <div class="addbox-title">＋ New Engineering Payment Type</div>
+      <div class="fg"><label class="flbl">Payment Type</label><input type="text" id="pt-name-eng" placeholder="e.g. Legal Fees, Fuel, Equipment" autocomplete="off"></div>
+      <button class="btn bp bfull" onclick="addPayType('eng')">Add Type</button>
+    </div>
+  </div>
+
+  <div class="db-panel" id="db-ptypes-con">
+    <div style="background:var(--yd);border:1px solid rgba(246,216,96,.2);border-radius:var(--rsm);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--gold);">
+      💡 Mark a payment as <strong>→ Personal Safe</strong> to count it toward your personal balance.
+    </div>
+    <div id="pt-list-con"></div>
+    <div class="addbox">
+      <div class="addbox-title">＋ New Contracting Payment Type</div>
+      <div class="fg"><label class="flbl">Payment Type</label><input type="text" id="pt-name-con" placeholder="e.g. Wood Subcontractor, Materials" autocomplete="off"></div>
+      <button class="btn bteal bfull" onclick="addPayType('con')">Add Type</button>
+    </div>
+  </div>
+
+  <div class="db-panel" id="db-ptypes-personal">
+    <div id="pt-list-personal"></div>
+    <div class="addbox">
+      <div class="addbox-title">＋ New Personal Expense Type</div>
+      <div class="fg"><label class="flbl">Payment Type</label><input type="text" id="pt-name-personal" placeholder="e.g. Grocery, Restaurant, Travel, Medical" autocomplete="off"></div>
+      <button class="btn bp bfull" onclick="addPayType('personal')">Add Type</button>
+    </div>
+  </div>
+
+  <div style="height:80px"></div>
+</div>
+</div>
+
+<!-- ══════════════ PERSONAL EXPENSES ══════════════ -->
+<div class="view" id="view-personal">
+<div class="container">
+  <!-- Safe balance card -->
+  <div id="personal-safe-card" style="margin-bottom:16px"></div>
+
+  <div class="sec" style="margin-top:0">
+    <span>Personal Expenses</span>
+    <button class="btn bp" style="padding:8px 14px;font-size:13px;min-height:36px" onclick="openPersonalExpense()">＋ Add Expense</button>
+  </div>
+  <div id="personal-exp-list"></div>
+  <div style="height:80px"></div>
+</div>
+</div>
+
+<!-- ══════════════ REPORT ══════════════ -->
+<div class="view" id="view-report">
+<div class="container">
+  <div class="sec" style="margin-top:4px">Report Generator</div>
+  <div style="background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:14px">
+    <div class="fg"><label class="flbl">Scope</label>
+      <select id="rscope">
+        <option value="all">All — Full Overview</option>
+        <option value="safes">Safes Summary</option>
+        <option value="re_summary">Real Estate – Full Detail</option>
+        <option value="re_projects">Real Estate – Projects Breakdown</option>
+        <option value="eng_all">All Engineering Accounts</option>
+        <option value="con_all">All Contracting Accounts</option>
+        <option value="personal">Personal Safe Detail</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="fg" style="margin-bottom:0"><label class="flbl">From</label><input type="date" id="rf"></div>
+      <div class="fg" style="margin-bottom:0"><label class="flbl">To</label><input type="date" id="rt"></div>
+    </div>
+    <div style="margin-top:14px"><button class="btn bp bfull" onclick="genReport()">Generate Report</button></div>
+  </div>
+  <div id="rout-placeholder" style="background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r);padding:24px;text-align:center;color:var(--txt3);font-family:'DM Mono',monospace;font-size:12px;margin-bottom:14px">
+    Tap Generate Report to preview
+  </div>
+  <div style="height:80px"></div>
+</div>
+</div>
+
+<!-- ══════════════ SETTINGS ══════════════ -->
+<div class="view" id="view-settings">
+<div class="container">
+
+  <!-- SYNC NOW -->
+  <div class="sec" style="margin-top:4px">Cloud Sync</div>
+  <div style="background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px">☁️ Sync to Firebase</div>
+    <div style="font-size:12px;color:var(--txt3);font-family:'DM Mono',monospace;margin-bottom:8px">Force-push all local data to Firebase so other devices receive it immediately.</div>
+    <div id="sync-status" style="font-size:11px;font-family:'DM Mono',monospace;color:var(--txt3);margin-bottom:12px">Status: tap Sync Now to check</div>
+    <button class="btn bp bfull" id="sync-now-btn" onclick="syncNow()">☁️ Sync Now</button>
+  </div>
+
+  <!-- BACKUP -->
+  <div class="sec">Backup &amp; Restore</div>
+
+  <div style="background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px">📤 Export Data</div>
+    <div style="font-size:12px;color:var(--txt3);font-family:'DM Mono',monospace;margin-bottom:12px">Download all your data as a JSON backup file.</div>
+    <button class="btn bp bfull" onclick="exportData()">Download Backup</button>
+  </div>
+
+  <div style="background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px">📥 Import Data</div>
+    <div style="font-size:12px;color:var(--txt3);font-family:'DM Mono',monospace;margin-bottom:12px">Restore from a previously exported JSON file. <strong style="color:var(--red)">This will overwrite all current data.</strong></div>
+    <label class="btn bg bfull" style="cursor:pointer;justify-content:center">
+      Choose Backup File
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(this)">
+    </label>
+  </div>
+
+  <div style="height:80px"></div>
+</div>
+</div>
+
+</div><!-- end scroll -->
+
+<!-- PERSONAL EXPENSE SHEET -->
+<div class="sov" id="sov-personal" onclick="closePExpSheet()"></div>
+<div class="sheet" id="sht-personal">
+  <div class="shandle"></div>
+  <div class="shdr">
+    <div class="shtitle">Personal Expense</div>
+    <div class="shsub">// paid from Personal Safe</div>
+  </div>
+  <div class="shbody">
+    <div class="fg"><label class="flbl">Amount (USD)</label><input type="number" id="pe-amt" placeholder="0.00" min="0" step="0.01" inputmode="decimal"></div>
+    <div class="fg"><label class="flbl">Description</label><input type="text" id="pe-desc" placeholder="e.g. Grocery, Restaurant, Travel" autocomplete="off"></div>
+    <div class="fg"><label class="flbl">Payment Type (optional)</label><select id="pe-ptype"><option value="">— Select type —</option></select></div>
+    <div class="fg"><label class="flbl">Receiver (optional)</label><select id="pe-receiver"><option value="">— Select receiver —</option></select></div>
+    <div class="fg"><label class="flbl">Date</label><input type="date" id="pe-date"></div>
+    <div class="fg"><label class="flbl">Logged by (optional)</label><input type="text" id="pe-user" placeholder="Your name" autocomplete="off"></div>
+    <div style="display:flex;gap:8px;padding-bottom:4px">
+      <button class="btn bg" style="flex:1;justify-content:center" onclick="closePExpSheet()">Cancel</button>
+      <button class="btn bp" style="flex:2;justify-content:center" onclick="savePExp()">Save Expense</button>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT PREVIEW SHEET -->
+<div class="sov" id="sov-report" onclick="closeReportSheet()"></div>
+<div class="sheet" id="sht-report">
+  <div class="shandle"></div>
+  <div class="shdr">
+    <div class="shtitle">Report Preview</div>
+    <div class="shsub" id="report-scope-label">// generated report</div>
+  </div>
+  <div class="shbody">
+    <div id="rout" style="background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r);padding:14px;font-family:'DM Mono',monospace;font-size:11px;line-height:1.85;color:var(--txt2);white-space:pre;overflow-x:auto;-webkit-overflow-scrolling:touch;min-height:200px;margin-bottom:14px">Select a scope and tap Generate Report...</div>
+    <div style="display:flex;gap:8px;padding-bottom:4px">
+      <button class="btn bg" style="flex:1;justify-content:center" onclick="copyRep()">📋 Copy</button>
+      <button class="btn bi" style="flex:1;justify-content:center" onclick="waRep()">💬 WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bnav">
+  <button class="ni active" id="nav-home" onclick="showView('home',this)"><span class="ni-icon">🏠</span>Dashboard</button>
+  <button class="ni" id="nav-accounts" onclick="showView('accounts',this)"><span class="ni-icon">📂</span>Accounts</button>
+  <button class="ni" id="nav-database" onclick="showView('database',this)"><span class="ni-icon">🗄️</span>Database</button>
+  <button class="ni" id="nav-personal" onclick="showView('personal',this)"><span class="ni-icon">💸</span>Personal</button>
+  <button class="ni" id="nav-settings" onclick="showView('settings',this)"><span class="ni-icon">⚙️</span>Settings</button>
+  <button class="ni" id="nav-report" onclick="showView('report',this)"><span class="ni-icon">📊</span>Report</button>
+</nav>
+
+<button class="fab" onclick="openTx()">＋</button>
+<div id="toast"></div>
+<div class="sov" id="sov" onclick="closeSheet()"></div>
+
+<!-- ADD TRANSACTION SHEET -->
+<div class="sheet" id="sht">
+  <div class="shandle"></div>
+  <div class="shdr">
+    <div class="shtitle">Add Entry</div>
+    <div class="shsub" id="shsub">// new transaction</div>
+  </div>
+  <div class="shbody">
+    <div class="ttoggle">
+      <button class="tbtn income sel" id="btn-i" onclick="setType('income')">⬆ Income</button>
+      <button class="tbtn payment" id="btn-p" onclick="setType('payment')">⬇ Payment</button>
+    </div>
+    <div class="fg"><label class="flbl">Account</label>
+      <select id="ta" onchange="onAccChange()"></select>
+    </div>
+    <!-- RE project selector -->
+    <div class="fg" id="fld-proj" style="display:none">
+      <label class="flbl">Real Estate Project</label>
+      <select id="tproj"></select>
+    </div>
+    <!-- Payment type -->
+    <div class="fg" id="fld-ptype" style="display:none">
+      <label class="flbl">Payment Type</label>
+      <select id="tptype" onchange="onPayTypeChange()"></select>
+    </div>
+    <!-- Receiver -->
+    <div class="fg" id="fld-receiver" style="display:none">
+      <label class="flbl">Receiver / Supplier</label>
+      <select id="treceiver"></select>
+    </div>
+    <!-- Link to RE Project (shown for Eng/Con income only) -->
+    <div class="fg" id="fld-re-link" style="display:none">
+      <label class="flbl">Link to RE Project (optional)</label>
+      <select id="t-re-proj">
+        <option value="">— Not linked to RE project —</option>
+      </select>
+      <div id="re-link-note" style="display:none;margin-top:6px;background:var(--od);border:1px solid rgba(240,168,96,.25);border-radius:var(--rsm);padding:8px 12px;font-size:11px;color:var(--org);font-family:'DM Mono',monospace">
+        ⚠ This will auto-create a payment on the RE account deducted from the selected project.
+      </div>
+    </div>
+    <!-- Personal Safe toggle (shown for Eng/Con payments) -->
+    <div id="fld-safe" style="display:none;margin-bottom:14px">
+      <div style="background:var(--yd);border:1px solid rgba(246,216,96,.25);border-radius:var(--rsm);padding:12px 14px;display:flex;align-items:center;gap:10px">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:var(--gold)">💰 → Personal Safe</div>
+          <div style="font-size:11px;color:var(--txt3);font-family:'DM Mono',monospace;margin-top:2px">This amount stays in your personal safe</div>
+        </div>
+        <label style="position:relative;width:44px;height:26px;flex-shrink:0">
+          <input type="checkbox" id="to-safe" style="opacity:0;width:0;height:0;position:absolute" onchange="onSafeToggle()">
+          <span id="safe-toggle-track" style="position:absolute;inset:0;border-radius:13px;background:var(--surf3);border:1px solid var(--bdr);transition:all .2s;cursor:pointer">
+            <span id="safe-toggle-thumb" style="position:absolute;width:20px;height:20px;border-radius:50%;background:var(--txt3);top:2px;left:2px;transition:all .2s"></span>
+          </span>
+        </label>
+      </div>
+    </div>
+    <div class="fg"><label class="flbl">Amount (USD)</label><input type="number" id="tam" placeholder="0.00" min="0" step="0.01" inputmode="decimal"></div>
+    <div class="fg"><label class="flbl">Description</label><input type="text" id="tds" placeholder="e.g. Invoice #12" autocomplete="off"></div>
+    <div class="fg"><label class="flbl">Date</label><input type="date" id="tdt"></div>
+    <div class="fg"><label class="flbl">Logged by (optional)</label><input type="text" id="tus" placeholder="Your name" autocomplete="off"></div>
+    <div style="display:flex;gap:8px;padding-bottom:4px">
+      <button class="btn bg" style="flex:1;justify-content:center" onclick="closeSheet()">Cancel</button>
+      <button class="btn bp" style="flex:2;justify-content:center" onclick="saveTx()">Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── SERVICE WORKER ── */
+if('serviceWorker' in navigator){
+  const sw=`const C='vault-v1';
+self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.add(self.registration.scope)));self.skipWaiting()});
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});
+self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cl=res.clone();caches.open(C).then(c=>c.put(e.request,cl));return res}).catch(()=>r)))});`;
+  navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'text/javascript'})),{scope:'./'}).catch(()=>{});
+}
+
+/* ── DATA ── */
+/* ── DATA — Firebase Firestore ── */
+function defaultData(){
+  return{
+    reOpeningBalance:0,
+    personalSafeOpening:0,
+    accounts:[{id:'acc_re',name:'Real Estate Portfolio',type:'re',client:'',ts:Date.now()}],
+    projects:[],
+    transactions:[],
+    locations:[],
+    payTypes:{re:[],eng:[],con:[],personal:[]},
+    receivers:[],
+    cities:[]
+  };
+}
+function applyDefaults(d){
+  if(d.reOpeningBalance===undefined)d.reOpeningBalance=0;
+  if(d.personalSafeOpening===undefined)d.personalSafeOpening=0;
+  if(!d.locations)d.locations=[];
+  if(!d.payTypes)d.payTypes={re:[],eng:[],con:[]};
+  if(!d.payTypes.con)d.payTypes.con=[];
+  if(!d.payTypes.personal)d.payTypes.personal=[];
+  if(!d.receivers)d.receivers=[];
+  if(!d.cities)d.cities=[];
+  if(!d.projects)d.projects=[];
+  if(!d.accounts||!d.accounts.length)d.accounts=[{id:'acc_re',name:'Real Estate Portfolio',type:'re',client:'',ts:Date.now()}];
+  if(!d.transactions)d.transactions=[];
+  d.locations.forEach(l=>{if(!l.lotNum)l.lotNum='—'});
+  d.projects=d.projects.filter(p=>p.id!=='proj_default');
+  return d;
+}
+// localStorage fallback if Firebase fails
+const KEY='vault_v1';
+function loadFromLocal(){
+  try{const r=localStorage.getItem(KEY);if(r)return applyDefaults(JSON.parse(r));}catch(e){}
+  return defaultData();
+}
+/* ── PERSONAL EXPENSES ── */
+function renderPersonalView(){
+  const pc=personalCalc();
+  // Safe balance card
+  document.getElementById('personal-safe-card').innerHTML=`
+    <div class="bal-card" style="border-color:rgba(176,138,240,.3);background:linear-gradient(135deg,rgba(176,138,240,.07),rgba(176,138,240,.02))">
+      <div class="bal-card-top">
+        <div class="bal-card-label">🔒 Personal Safe</div>
+        <div class="bal-card-icon">💸</div>
+      </div>
+      <div class="bal-card-amount ${pc.safe>=0?'pos':'neg'}">${fmt(pc.safe)}</div>
+      <div class="bal-card-rows">
+        <div class="bal-row"><span>Total in safe</span><span class="cg">+${fmt(pc.opening+pc.toSafe)}</span></div>
+        <div class="bal-row"><span>Withdrawn to pocket</span><span class="cr">-${fmt(pc.fromSafe)}</span></div>
+        <div class="bal-row"><span>Personal expenses</span><span class="cr">-${fmt(pc.safeExpenses)}</span></div>
+      </div>
+    </div>`;
+
+  // Expense list
+  const txs=DB.transactions.filter(t=>t.aid==='_personal'&&t.type==='payment')
+    .sort((a,b)=>b.date.localeCompare(a.date));
+  const el=document.getElementById('personal-exp-list');
+  if(!txs.length){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">💸</div>No personal expenses yet.</div>`;return;
+  }
+  el.innerHTML=txs.map(tx=>{
+    const pt=(DB.payTypes.personal||[]).find(p=>p.id===tx.ptId);
+    const recv=(DB.receivers||[]).find(r=>r.id===tx.receiverId);
+    const meta=[fmtD(tx.date),pt?esc(pt.name):null,recv?esc(recv.name):null,tx.user?esc(tx.user):null].filter(Boolean).join(' · ');
+    return`<div class="txrow" id="tx-${tx.id}">
+      <div class="txdot p"></div>
+      <div class="txinfo">
+        <div class="txdesc">${esc(tx.desc)||'—'}</div>
+        <div class="txmeta">${meta}</div>
+      </div>
+      <div class="txamt p">-${fmt(tx.amt)}</div>
+      <button class="txdel" onclick="delPExp('${tx.id}')">×</button>
+    </div>`;
+  }).join('');
+}
+
+function openPersonalExpense(){
+  // fill payment types
+  const ptSel=document.getElementById('pe-ptype');
+  const ptList=DB.payTypes.personal||[];
+  ptSel.innerHTML='<option value="">— Select type —</option>'+ptList.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
+  // fill receivers
+  const rSel=document.getElementById('pe-receiver');
+  rSel.innerHTML='<option value="">— Select receiver —</option>'+(DB.receivers||[]).map(r=>`<option value="${r.id}">${esc(r.name)}</option>`).join('');
+  document.getElementById('pe-amt').value='';
+  document.getElementById('pe-desc').value='';
+  document.getElementById('pe-date').value=today();
+  document.getElementById('pe-user').value='';
+  document.getElementById('sov-personal').classList.add('open');
+  document.getElementById('sht-personal').classList.add('open');
+  setTimeout(()=>document.getElementById('pe-amt').focus(),350);
+}
+
+function closePExpSheet(){
+  document.getElementById('sov-personal').classList.remove('open');
+  document.getElementById('sht-personal').classList.remove('open');
+}
+
+function savePExp(){
+  const amt=parseFloat(document.getElementById('pe-amt').value);
+  const desc=document.getElementById('pe-desc').value.trim();
+  const date=document.getElementById('pe-date').value;
+  const user=document.getElementById('pe-user').value.trim();
+  const ptId=document.getElementById('pe-ptype').value||null;
+  const receiverId=document.getElementById('pe-receiver').value||null;
+  if(!amt||amt<=0){toast('Enter a valid amount','err');return}
+  if(!date){toast('Pick a date','err');return}
+  DB.transactions.push({id:uid(),aid:'_personal',type:'payment',amt,desc,date,user,ptId,receiverId,ts:Date.now()});
+  save();closePExpSheet();
+  renderPersonalView();
+  if(cv==='home'){renderSafes();renderSummary();}
+  toast('Personal expense saved ✓');
+}
+
+function delPExp(id){
+  const el=document.getElementById('tx-'+id);
+  if(el)el.classList.add('flashing');
+  setTimeout(()=>{
+    if(!confirm('Delete this expense?')){if(el)el.classList.remove('flashing');return}
+    DB.transactions=DB.transactions.filter(t=>t.id!==id);
+    save();renderPersonalView();
+    if(cv==='home'){renderSafes();renderSummary();}
+    toast('Deleted');
+  },150);
+}
+
+function save(){
+  if(window._saveToFirestore) window._saveToFirestore(DB);
+  else { try{localStorage.setItem('vault_data_v1',JSON.stringify(DB));}catch(e){} }
+}
+// DB — populated by Firebase onSnapshot on startup
+let DB=defaultData();
+
+/* ── HELPERS ── */
+const uid=()=>'_'+Math.random().toString(36).slice(2,8)+Date.now().toString(36);
+const esc=s=>s?s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'):'';
+function fmt(n){const s=Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});return(n<0?'-':'')+'$'+s}
+function fmtD(iso){if(!iso)return'';const d=new Date(iso+(iso.length===10?'T00:00:00':''));return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}
+const today=()=>new Date().toISOString().split('T')[0];
+const reAcc=()=>DB.accounts.find(a=>a.type==='re');
+const typeIcon={'re':'🏗','eng':'📐','con':'🔩'};
+const typeName={'re':'Real Estate','eng':'Engineering Design','con':'Contracting'};
+
+// Account balance = income - payments (all payments, including to-safe)
+const aBal=id=>DB.transactions.filter(t=>t.aid===id).reduce((s,t)=>s+(t.type==='income'?t.amt:-t.amt),0);
+
+/* ── SAFE CALCULATIONS ──
+  RE Safe:
+    Opening balance (set manually) + RE income added
+    − project payments − transfers to RE Pocket
+    = RE Safe balance
+
+  RE Pocket:
+    All transfers received from RE Safe
+    − RE pocket expenses (tagged repocket=true)
+    = RE Pocket balance
+
+  Personal Safe / Pocket handled separately later.
+*/
+function reSafe(){
+  const ra=reAcc();
+  const base=DB.reOpeningBalance||0;
+  if(!ra)return{open:base,inc:0,projPay:0,safe:base};
+  const inc     = DB.transactions.filter(t=>t.aid===ra.id&&t.type==='income').reduce((s,t)=>s+t.amt,0);
+  const projPay = DB.transactions.filter(t=>t.aid===ra.id&&t.type==='payment').reduce((s,t)=>s+t.amt,0);
+  const safe = base + inc - projPay;
+  return{open:base,inc,projPay,safe};
+}
+/* ── PERSONAL POCKET & SAFE ──
+  Pocket = all Eng+Con income
+         + transfers from safe to pocket  (from-safe)
+         − transfers to safe              (to-safe)
+         − all pocket payments/expenses   (payment, pocket-exp)
+
+  Safe   = opening
+         + transfers in from pocket       (to-safe)
+         − transfers out to pocket        (from-safe)
+         − personal expenses from safe    (safe-expense, aid='_personal')
+*/
+function personalCalc(){
+  const ids=DB.accounts.filter(a=>a.type==='eng'||a.type==='con').map(a=>a.id);
+  const allTx=DB.transactions;
+
+  const income       = allTx.filter(t=>ids.includes(t.aid)&&t.type==='income').reduce((s,t)=>s+t.amt,0);
+  const toSafe       = allTx.filter(t=>ids.includes(t.aid)&&t.pTxType==='to-safe').reduce((s,t)=>s+t.amt,0);
+  const fromSafe     = allTx.filter(t=>ids.includes(t.aid)&&t.pTxType==='from-safe').reduce((s,t)=>s+t.amt,0);
+  const payments     = allTx.filter(t=>ids.includes(t.aid)&&(t.pTxType==='pocket-exp'||(!t.pTxType&&t.type==='payment'))).reduce((s,t)=>s+t.amt,0);
+  const safeExpenses = allTx.filter(t=>t.aid==='_personal'&&t.type==='payment').reduce((s,t)=>s+t.amt,0);
+  const pocket       = income + fromSafe - toSafe - payments;
+
+  const opening   = DB.personalSafeOpening||0;
+  const safe      = opening + toSafe - fromSafe - safeExpenses;
+
+  return{income,toSafe,fromSafe,payments,safeExpenses,pocket,opening,safe};
+}
+// kept for backward compat
+function personalSafeBal(){return personalCalc().safe;}
+function personalIncome(){return personalCalc().income;}
+function netPocket(){return personalCalc().pocket;}
+
+let _tt;
+function toast(msg,tp='ok'){const e=document.getElementById('toast');e.textContent=msg;e.className='show '+tp;clearTimeout(_tt);_tt=setTimeout(()=>e.className='',2600)}
+
+/* ── VIEW ROUTING ── */
+let cv='home';
+function showView(id,el){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  document.getElementById('view-'+id).classList.add('active');
+  document.getElementById('nav-'+id).classList.add('active');
+  document.getElementById('scr').scrollTop=0;
+  cv=id;
+  if(id==='home'){renderSafes();renderSummary();renderList()}
+  if(id==='accounts'){renderManageAccounts();fillProjLocSel();showREOpeningCurrent();showPSOpeningCurrent();fillCitySel()}
+  if(id==='database')renderDatabase();
+  if(id==='report')renderRepF();
+  if(id==='personal')renderPersonalView();
+  if(id==='settings'){
+    const status=document.getElementById('sync-status');
+    if(status){
+      const ls=localStorage.getItem('vault_data_v1');
+      const lsScore=ls?((JSON.parse(ls).transactions||[]).length+(JSON.parse(ls).accounts||[]).length):0;
+      status.textContent='Local records: '+lsScore+' — tap Sync Now to push to Firebase';
+    }
+  }
+}
+
+/* ── SAFES ── */
+function renderSafes(){
+  const re=reSafe();
+  const pc=personalCalc();
+  document.getElementById('safe-cards').innerHTML=`
+    <div class="bal-card" style="border-color:rgba(240,168,96,.35);background:linear-gradient(135deg,rgba(240,168,96,.08),rgba(240,168,96,.02))">
+      <div class="bal-card-top">
+        <div class="bal-card-label">🏗 Real Estate</div>
+        <div class="bal-card-icon">🏦</div>
+      </div>
+      <div class="bal-card-amount ${re.safe>=0?'pos':'neg'}">${fmt(re.safe)}</div>
+      <div class="bal-card-rows">
+        <div class="bal-row"><span>Income</span><span class="cg">+${fmt(re.inc)}</span></div>
+        <div class="bal-row"><span>Project payments</span><span class="cr">-${fmt(re.projPay)}</span></div>
+        ${re.open?`<div class="bal-row"><span>Opening</span><span class="cy">+${fmt(re.open)}</span></div>`:''}
+      </div>
+    </div>
+    <div class="bal-card" style="border-color:rgba(200,240,96,.25);background:linear-gradient(135deg,rgba(200,240,96,.06),rgba(200,240,96,.01))">
+      <div class="bal-card-top">
+        <div class="bal-card-label">📐🔩 Eng / Contracting</div>
+        <div class="bal-card-icon">💵</div>
+      </div>
+      <div class="bal-card-amount ${pc.pocket>=0?'pos':'neg'}">${fmt(pc.pocket)}</div>
+      <div class="bal-card-rows">
+        <div class="bal-row"><span>Income</span><span class="cg">+${fmt(pc.income)}</span></div>
+        <div class="bal-row"><span>Payments</span><span class="cr">-${fmt(pc.payments)}</span></div>
+        <div class="bal-row"><span>In safe 🔒</span><span class="cp">${fmt(pc.safe)}</span></div>
+      </div>
+    </div>`;
+}
+
+/* ── SUMMARY BLOCKS ── */
+let af='all';
+function renderSummary(){
+  const ra=reAcc();
+  const engAccs=DB.accounts.filter(a=>a.type==='eng');
+  const conAccs=DB.accounts.filter(a=>a.type==='con');
+  const engBal=engAccs.reduce((s,a)=>s+aBal(a.id),0);
+  const conBal=conAccs.reduce((s,a)=>s+aBal(a.id),0);
+
+  // RE project rows
+  const reProjRows=DB.projects.map(p=>{
+    const pPay=DB.transactions.filter(t=>t.aid===(ra?ra.id:null)&&t.type==='payment'&&t.projId===p.id).reduce((s,t)=>s+t.amt,0);
+    return pPay?`<div class="sum-row"><span class="sum-row-name">📌 ${esc(p.name)}</span><span class="sum-row-val cr">-${fmt(pPay)}</span></div>`:'';
+  }).join('');
+
+  const engRows=engAccs.map(a=>{
+    const inc=DB.transactions.filter(t=>t.aid===a.id&&t.type==='income').reduce((s,t)=>s+t.amt,0);
+    return`<div class="sum-row"><span class="sum-row-name">📐 ${esc(a.name)}</span><span class="sum-row-val cg">+${fmt(inc)}</span></div>`;
+  }).join('');
+
+  const conRows=conAccs.map(a=>{
+    const inc=DB.transactions.filter(t=>t.aid===a.id&&t.type==='income').reduce((s,t)=>s+t.amt,0);
+    return`<div class="sum-row"><span class="sum-row-name">🔩 ${esc(a.name)}</span><span class="sum-row-val cg">+${fmt(inc)}</span></div>`;
+  }).join('');
+
+  const pc=personalCalc();
+
+  let html='';
+
+  // RE block
+  const re=reSafe();
+  html+=`<div class="sbox swide sum-block">
+    <div class="sum-block-header"><span class="sum-block-title">🏦 Real Estate</span></div>
+    <div class="sum-block-sub">
+      <div class="sum-row"><span class="sum-row-name">Opening balance</span><span class="sum-row-val cy">+${fmt(re.open)}</span></div>
+      <div class="sum-row"><span class="sum-row-name">Income added</span><span class="sum-row-val cg">+${fmt(re.inc)}</span></div>
+      <div class="sum-row"><span class="sum-row-name">Project payments</span><span class="sum-row-val cr">-${fmt(re.projPay)}</span></div>
+      <div class="sum-divider"></div>
+      <div class="sum-row"><span class="sum-row-name" style="font-weight:600;color:var(--txt)">🏦 RE Safe Balance</span><span class="sum-row-val ${re.safe>=0?'cg':'cr'}" style="font-size:14px">${fmt(re.safe)}</span></div>
+      ${reProjRows?'<div class="sum-divider"></div>'+reProjRows:''}
+    </div>
+  </div>`;
+
+  // Eng block
+  if(engAccs.length){
+    html+=`<div class="sbox swide sum-block">
+      <div class="sum-block-header"><span class="sum-block-title">📐 Engineering</span><span class="sval cb" style="font-size:18px">${fmt(engBal)}</span></div>
+      <div class="sum-block-sub">${engRows}</div>
+    </div>`;
+  }
+
+  // Con block
+  if(conAccs.length){
+    html+=`<div class="sbox swide sum-block">
+      <div class="sum-block-header"><span class="sum-block-title">🔩 Contracting</span><span class="sval ct" style="font-size:18px">${fmt(conBal)}</span></div>
+      <div class="sum-block-sub">${conRows}</div>
+    </div>`;
+  }
+
+  // Pocket block
+  html+=`<div class="sbox swide sum-block" style="border-color:rgba(246,216,96,.15)">
+    <div class="sum-block-header"><span class="sum-block-title">💵 Pocket</span><span class="sval ${pc.pocket>=0?'cg':'cr'}" style="font-size:18px">${fmt(pc.pocket)}</span></div>
+    <div class="sum-block-sub">
+      <div class="sum-row"><span class="sum-row-name">Total Eng+Con income</span><span class="sum-row-val cg">+${fmt(pc.income)}</span></div>
+      <div class="sum-row"><span class="sum-row-name">Received from safe</span><span class="sum-row-val cg">+${fmt(pc.fromSafe)}</span></div>
+      <div class="sum-row"><span class="sum-row-name">Transferred to safe</span><span class="sum-row-val cr">-${fmt(pc.toSafe)}</span></div>
+      <div class="sum-row"><span class="sum-row-name">Payments &amp; expenses</span><span class="sum-row-val cr">-${fmt(pc.payments)}</span></div>
+      <div class="sum-divider"></div>
+      <div class="sum-row"><span class="sum-row-name" style="font-weight:600;color:var(--txt)">💵 Pocket Balance</span><span class="sum-row-val ${pc.pocket>=0?'cg':'cr'}" style="font-size:14px">${fmt(pc.pocket)}</span></div>
+    </div>
+  </div>`;
+  // Personal safe block
+  html+=`<div class="sbox swide sum-block" style="border-color:rgba(176,138,240,.2)">
+    <div class="sum-block-header"><span class="sum-block-title">🔒 Personal Safe</span><span class="sval cp" style="font-size:18px">${fmt(pc.safe)}</span></div>
+    <div class="sum-block-sub">
+      <div class="sum-row"><span class="sum-row-name">Opening balance</span><span class="sum-row-val cy">+${fmt(pc.opening)}</span></div>
+      <div class="sum-row"><span class="sum-row-name">Transferred in from pocket</span><span class="sum-row-val cg">+${fmt(pc.toSafe)}</span></div>
+      <div class="sum-row"><span class="sum-row-name">Transferred to pocket</span><span class="sum-row-val cr">-${fmt(pc.fromSafe)}</span></div>
+      <div class="sum-row"><span class="sum-row-name">Personal expenses</span><span class="sum-row-val cr">-${fmt(pc.safeExpenses)}</span></div>
+      <div class="sum-divider"></div>
+      <div class="sum-row"><span class="sum-row-name" style="font-weight:600;color:var(--txt)">🔒 Personal Safe Balance</span><span class="sum-row-val ${pc.safe>=0?'cg':'cr'}" style="font-size:14px">${fmt(pc.safe)}</span></div>
+    </div>
+  </div>`;
+
+  document.getElementById('summary').innerHTML=html;
+}
+
+/* ── ACCOUNT LIST ── */
+function filterAcc(f,el){
+  af=f;document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');renderList();
+}
+
+function renderList(){
+  let accs=DB.accounts;
+  if(af!=='all')accs=accs.filter(a=>a.type===af);
+  const el=document.getElementById('acclist');
+  if(!accs.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📂</div>No accounts.</div>`;return}
+  el.innerHTML=accs.map(a=>a.type==='re'?renderRECard(a):renderStdCard(a)).join('');
+}
+
+function renderRECard(a){
+  const re=reSafe();
+  const bc=re.safe>=0?'pos':re.safe<0?'neg':'zero';
+  const projRows=DB.projects.map(p=>{
+    const pPay=DB.transactions.filter(t=>t.aid===a.id&&t.type==='payment'&&t.projId===p.id).reduce((s,t)=>s+t.amt,0);
+    if(!pPay)return'';
+    return`<div class="proj-row"><div class="proj-dot"></div><div class="proj-name-small">${esc(p.name)}</div><div class="proj-amt-small">-${fmt(pPay)}</div></div>`;
+  }).join('');
+
+  const incTxs=DB.transactions.filter(t=>t.aid===a.id&&t.type==='income').sort((x,y)=>y.date.localeCompare(x.date));
+  const payTxs=DB.transactions.filter(t=>t.aid===a.id&&t.type==='payment').sort((x,y)=>y.date.localeCompare(x.date));
+
+  const incHtml=incTxs.length?incTxs.map(tx=>`<div class="txrow" id="tx-${tx.id}"><div class="txdot i"></div><div class="txinfo"><div class="txdesc">${esc(tx.desc)||'—'}</div><div class="txmeta">${fmtD(tx.date)}${tx.user?' · '+esc(tx.user):''}</div></div><div class="txamt i">+${fmt(tx.amt)}</div><button class="txdel" onclick="delTx('${tx.id}')">×</button></div>`).join(''):`<div class="notx">No income yet</div>`;
+
+  const payHtml=payTxs.length?payTxs.map(tx=>{
+    const proj=DB.projects.find(p=>p.id===tx.projId);
+    const pt=(DB.payTypes.re||[]).find(p=>p.id===tx.ptId);
+    const meta=[fmtD(tx.date),proj?esc(proj.name):null,pt?esc(pt.name):null,tx.user?esc(tx.user):null].filter(Boolean).join(' · ');
+    return`<div class="txrow" id="tx-${tx.id}"><div class="txdot pp"></div><div class="txinfo"><div class="txdesc">${esc(tx.desc)||'—'}</div><div class="txmeta">${meta}</div></div><div class="txamt p">-${fmt(tx.amt)}</div><button class="txdel" onclick="delTx('${tx.id}')">×</button></div>`;
+  }).join(''):`<div class="notx">No payments yet</div>`;
+
+  return`<div class="acard re" id="ac-${a.id}">
+    <div class="atop" onclick="toggleA('${a.id}')">
+      <div class="aicon">🏗</div>
+      <div class="ainfo"><div class="aname">${esc(a.name)}</div><div class="asub">Real Estate · RE Safe</div></div>
+      <div class="aright"><div class="ablbl">RE Safe</div><div class="abval ${re.safe>=0?'pos':'neg'}">${fmt(re.safe)}</div></div>
+      <div class="chv">▾</div>
+    </div>
+    <div class="abody" id="ab-${a.id}">
+      <div class="abody-in">
+        <div class="qstats">
+          <div class="qstat"><div class="qstat-lbl">Opening</div><div class="qstat-val cy">${fmt(re.open)}</div></div>
+          <div class="qstat"><div class="qstat-lbl">Income</div><div class="qstat-val cg">+${fmt(re.inc)}</div></div>
+          <div class="qstat"><div class="qstat-lbl">RE Safe</div><div class="qstat-val ${re.safe>=0?'cg':'cr'}">${fmt(re.safe)}</div></div>
+        </div>
+        ${projRows?`<div class="proj-breakdown"><div class="proj-title">📌 Payments by Project</div>${projRows}</div>`:''}
+        <div class="subtabs">
+          <button class="stab active" id="stab-inc-${a.id}" onclick="switchSubtab('${a.id}','inc')">⬆ Income</button>
+          <button class="stab" id="stab-pay-${a.id}" onclick="switchSubtab('${a.id}','pay')">⬇ Payments</button>
+        </div>
+        <div id="sub-inc-${a.id}"><div class="txlist">${incHtml}</div></div>
+        <div id="sub-pay-${a.id}" style="display:none"><div class="txlist">${payHtml}</div></div>
+        <div class="aacts">
+          <button class="btn bi" onclick="openTxFor('${a.id}','income')">⬆ RE Income</button>
+          <button class="btn bpur" onclick="openTxFor('${a.id}','payment')">⬇ Project Payment</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderStdCard(a){
+  const bal=aBal(a.id);
+  const bc=bal>0?'pos':bal<0?'neg':'zero';
+  const type=a.type;
+  const ptypes=DB.payTypes[type]||[];
+  const txs=DB.transactions.filter(t=>t.aid===a.id).sort((x,y)=>y.date.localeCompare(x.date));
+  const txh=txs.length?txs.map(tx=>{
+    const pt=ptypes.find(p=>p.id===tx.ptId);
+    const pTxLabels={'to-safe':'→ Safe','from-safe':'Safe → Pocket','pocket-exp':'Pocket Exp'};
+    const pTxLabel=tx.pTxType?pTxLabels[tx.pTxType]||null:null;
+    const recv=(DB.receivers||[]).find(r=>r.id===tx.receiverId);
+    const reLinkedProj=tx.reLinkProjId?DB.projects.find(p=>p.id===tx.reLinkProjId):null;
+    const reLinkTag=reLinkedProj?'🏗 '+esc(reLinkedProj.name):null;
+    const meta=[fmtD(tx.date),pTxLabel,pt?esc(pt.name):null,recv?esc(recv.name):null,reLinkTag,tx.user?esc(tx.user):null].filter(Boolean).join(' · ');
+    const dotCls=tx.type==='income'?'i':tx.pTxType==='to-safe'?'ps':tx.pTxType==='from-safe'?'i':'p';
+    const amtCls=tx.type==='income'||tx.pTxType==='from-safe'?'i':tx.pTxType==='to-safe'?'ps':'p';
+    const sign=tx.type==='income'||tx.pTxType==='from-safe'?'+':'-';
+    return`<div class="txrow" id="tx-${tx.id}"><div class="txdot ${dotCls}"></div><div class="txinfo"><div class="txdesc">${esc(tx.desc)||'—'}</div><div class="txmeta">${meta}</div></div><div class="txamt ${amtCls}">${sign}${fmt(tx.amt)}</div><button class="txdel" onclick="delTx('${tx.id}')">×</button></div>`;
+  }).join(''):`<div class="notx">No transactions yet</div>`;
+
+  const inc=DB.transactions.filter(t=>t.aid===a.id&&t.type==='income').reduce((s,t)=>s+t.amt,0);
+  return`<div class="acard ${type}" id="ac-${a.id}">
+    <div class="atop" onclick="toggleA('${a.id}')">
+      <div class="aicon">${typeIcon[type]}</div>
+      <div class="ainfo">
+        <div class="aname">${esc(a.name)}</div>
+        <div class="asub">${typeName[type]}${a.client?' · '+esc(a.client):''}</div>
+      </div>
+      <div class="aright"><div class="ablbl">Income</div><div class="abval pos">${fmt(inc)}</div></div>
+      <div class="chv">▾</div>
+    </div>
+    <div class="abody" id="ab-${a.id}">
+      <div class="abody-in">
+        <div class="txlist">${txh}</div>
+        <div class="aacts">
+          <button class="btn bi" onclick="openTxFor('${a.id}','income')">⬆ Income</button>
+          <button class="btn bpay" onclick="openTxFor('${a.id}','payment')">⬇ Payment</button>
+          <button class="btn bgold" onclick="openTxFor('${a.id}','to-safe')">💰 → Safe</button>
+          <button class="btn bpur" onclick="openTxFor('${a.id}','from-safe')">🔒 Safe → Pocket</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleA(id){document.getElementById('ac-'+id).classList.toggle('open')}
+function switchSubtab(aid,tab){
+  document.getElementById('stab-inc-'+aid).classList.toggle('active',tab==='inc');
+  document.getElementById('stab-pay-'+aid).classList.toggle('active',tab==='pay');
+  document.getElementById('sub-inc-'+aid).style.display=tab==='inc'?'block':'none';
+  document.getElementById('sub-pay-'+aid).style.display=tab==='pay'?'block':'none';
+}
+
+/* ── MANAGE ACCOUNTS ── */
+function renderManageAccounts(){
+  ['eng','con'].forEach(type=>{
+    const accs=DB.accounts.filter(a=>a.type===type);
+    const el=document.getElementById('mlist-'+type);
+    if(!accs.length){el.innerHTML=`<div class="empty" style="padding:16px"><div class="empty-icon" style="font-size:24px">${typeIcon[type]}</div>No accounts yet.</div>`;return}
+    el.innerHTML=accs.map(a=>{
+      const n=DB.transactions.filter(t=>t.aid===a.id).length;
+      const loc=a.locId?DB.locations.find(l=>l.id===a.locId):null;
+      const locCity=loc?(DB.cities||[]).find(ct=>ct.id===loc.cityId):null;
+      const locLabel=loc?(loc.lotNum+(locCity?' · '+locCity.name:loc.name?' · '+loc.name:'')):'';
+      return`<div class="mcard ${type}"><div class="minfo"><div class="mname">${esc(a.name)}</div>${loc?`<div style="font-size:11px;color:var(--txt3);margin-top:2px">📍 ${esc(locLabel)}</div>`:''}${a.client?`<div style="font-size:11px;color:var(--txt3);margin-top:2px">${esc(a.client)}</div>`:''}<span class="badge ${type}">${typeName[type]}</span><div class="mmeta">${n} tx · ${fmt(aBal(a.id))}</div></div><button class="btn bdng" style="padding:9px 12px;font-size:13px" onclick="delAcc('${a.id}')">Delete</button></div>`;
+    }).join('');
+  });
+  const projEl=document.getElementById('mlist-proj');
+  if(!DB.projects.length){projEl.innerHTML=`<div class="empty" style="padding:16px"><div class="empty-icon" style="font-size:24px">🏗</div>No projects yet.</div>`}
+  else projEl.innerHTML=DB.projects.map(p=>{
+    const pPay=DB.transactions.filter(t=>t.type==='payment'&&t.projId===p.id).reduce((s,t)=>s+t.amt,0);
+    const pCount=DB.transactions.filter(t=>t.type==='payment'&&t.projId===p.id).length;
+    const loc=DB.locations.find(l=>l.id===p.locId);
+    return`<div class="mcard proj"><div class="minfo"><div class="mname">${esc(p.name)}</div>${loc?`<div style="font-size:11px;color:var(--txt3);margin-top:2px">📍 ${esc(loc.lotNum)} · ${esc(loc.name)}</div>`:''}<span class="badge proj">RE Project</span><div class="mmeta">${pCount} payment${pCount!==1?'s':''} · ${fmt(pPay)} paid</div></div><button class="btn bdng" style="padding:9px 12px;font-size:13px" onclick="delProject('${p.id}')">Delete</button></div>`;
+  }).join('');
+}
+
+function fillProjLocSel(){
+  const opts='<option value="">— Select location —</option>'+DB.locations.map(l=>{
+    const city=(DB.cities||[]).find(ct=>ct.id===l.cityId);
+    const label=l.lotNum+(city?' · '+city.name:l.name?' · '+l.name:'');
+    return`<option value="${l.id}">${esc(label)}</option>`;
+  }).join('');
+  ['proj-loc','eng-loc','con-loc'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.innerHTML=opts;
+  });
+}
+
+function addAccount(type){
+  const locSel=document.getElementById(type+'-loc');
+  const clientEl=document.getElementById(type+'-client');
+  const locId=locSel?locSel.value:'';
+  const client=clientEl?clientEl.value.trim():'';
+  if(!locId){toast('Select a location first','err');return}
+  const loc=DB.locations.find(l=>l.id===locId);
+  if(!loc){toast('Location not found','err');return}
+  const name=loc.lotNum+' · '+loc.name;
+  if(DB.accounts.find(a=>a.type===type&&a.name===name)){toast('Account for this location already exists','err');return}
+  DB.accounts.push({id:uid(),name,type,client,locId,ts:Date.now()});
+  save();
+  if(locSel)locSel.value='';
+  if(clientEl)clientEl.value='';
+  renderManageAccounts();fillTA();toast('Account created ✓');
+}
+
+function delAcc(id){
+  const a=DB.accounts.find(x=>x.id===id);if(!a)return;
+  const n=DB.transactions.filter(t=>t.aid===id).length;
+  if(!confirm(`Delete "${a.name}"${n?` and its ${n} transaction${n!==1?'s':''}`:''  }?\nCannot be undone.`))return;
+  DB.accounts=DB.accounts.filter(x=>x.id!==id);
+  DB.transactions=DB.transactions.filter(t=>t.aid!==id);
+  save();renderManageAccounts();fillTA();toast('Account deleted');
+}
+
+function setPSOpening(){
+  const val=parseFloat(document.getElementById('ps-opening').value);
+  if(isNaN(val)||val<0){toast('Enter a valid amount','err');return}
+  DB.personalSafeOpening=val;
+  save();
+  document.getElementById('ps-opening').value='';
+  showPSOpeningCurrent();
+  toast('Personal Safe opening balance set ✓');
+  if(cv==='home'){renderSafes();renderSummary();renderList()}
+}
+function showPSOpeningCurrent(){
+  const el=document.getElementById('ps-opening-current');
+  if(!el)return;
+  el.textContent='Current opening balance: '+fmt(DB.personalSafeOpening||0);
+}
+
+function setREOpening(){
+  const val=parseFloat(document.getElementById('re-opening').value);
+  if(isNaN(val)||val<0){toast('Enter a valid amount','err');return}
+  DB.reOpeningBalance=val;
+  save();
+  document.getElementById('re-opening').value='';
+  showREOpeningCurrent();
+  toast('Opening balance set ✓');
+  if(cv==='home'){renderSafes();renderSummary();renderList()}
+}
+function showREOpeningCurrent(){
+  const el=document.getElementById('re-opening-current');
+  if(!el)return;
+  el.textContent='Current opening balance: '+fmt(DB.reOpeningBalance||0);
+}
+
+function addProject(){
+  const locId=document.getElementById('proj-loc').value||null;
+  const notes=document.getElementById('proj-notes').value.trim();
+  if(!locId){toast('Select a location first','err');return}
+  const loc=DB.locations.find(l=>l.id===locId);
+  const name=loc?(loc.lotNum+' · '+loc.name):'Unnamed';
+  if(DB.projects.find(p=>p.name===name)){toast('Project for this location already exists','err');return}
+  DB.projects.push({id:uid(),name,locId,notes,ts:Date.now()});
+  save();document.getElementById('proj-notes').value='';document.getElementById('proj-loc').value='';
+  renderManageAccounts();fillProjSel();toast('Project created ✓');
+}
+
+function delProject(id){
+  const p=DB.projects.find(x=>x.id===id);if(!p)return;
+  const n=DB.transactions.filter(t=>t.projId===id).length;
+  if(!confirm(`Delete "${p.name}"${n?` and ${n} tagged payment${n!==1?'s':''}`:''  }?\nCannot be undone.`))return;
+  DB.projects=DB.projects.filter(x=>x.id!==id);
+  DB.transactions.filter(t=>t.projId===id).forEach(t=>t.projId=null);
+  save();renderManageAccounts();fillProjSel();toast('Project deleted');
+}
+
+/* ── DATABASE ── */
+function switchDB(panel,el){
+  document.querySelectorAll('.db-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.db-panel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');document.getElementById('db-'+panel).classList.add('active');
+}
+
+function renderDatabase(){renderCityList();fillCitySel();renderLocList();renderReceiverList();['re','eng','con','personal'].forEach(renderPayTypeList)}
+
+/* ── CITIES ── */
+function renderCityList(){
+  const el=document.getElementById('city-list');
+  if(!el)return;
+  if(!DB.cities||!DB.cities.length){
+    el.innerHTML=`<div class="empty" style="padding:16px"><div class="empty-icon" style="font-size:26px">🏙</div>No cities yet.</div>`;return;
+  }
+  el.innerHTML=DB.cities.map(ct=>`
+    <div class="mcard loc">
+      <div class="minfo"><div class="mname">🏙 ${esc(ct.name)}</div></div>
+      <button class="btn bdng" style="padding:9px 12px;font-size:13px" onclick="delCity('${ct.id}')">Delete</button>
+    </div>`).join('');
+}
+
+function addCity(){
+  const name=document.getElementById('city-name').value.trim();
+  if(!name){toast('Enter a city name','err');return}
+  if(!DB.cities)DB.cities=[];
+  if(DB.cities.find(ct=>ct.name.toLowerCase()===name.toLowerCase())){toast('City already exists','err');return}
+  DB.cities.push({id:uid(),name,ts:Date.now()});
+  save();document.getElementById('city-name').value='';
+  renderCityList();fillCitySel();
+  toast('City added ✓');
+}
+
+function delCity(id){
+  if(!confirm('Delete this city?'))return;
+  DB.cities=DB.cities.filter(ct=>ct.id!==id);
+  save();renderCityList();fillCitySel();toast('City deleted');
+}
+
+function fillCitySel(){
+  const sel=document.getElementById('loc-city');
+  if(!sel)return;
+  sel.innerHTML='<option value="">— Select city —</option>'+(DB.cities||[]).map(ct=>`<option value="${ct.id}">${esc(ct.name)}</option>`).join('');
+}
+
+function renderLocList(){
+  const el=document.getElementById('loc-list');
+  if(!DB.locations.length){el.innerHTML=`<div class="empty" style="padding:16px"><div class="empty-icon" style="font-size:26px">📍</div>No locations yet.</div>`;return}
+  el.innerHTML=DB.locations.map(l=>{
+    const city=(DB.cities||[]).find(ct=>ct.id===l.cityId);
+    const display=l.lotNum+(city?' · '+city.name:'');
+    return`<div class="mcard loc"><div class="minfo"><div class="mname">📍 ${esc(display)}</div>${city?`<div style="font-size:11px;color:var(--txt3);margin-top:2px">🏙 ${esc(city.name)}</div>`:''}</div><button class="btn bdng" style="padding:9px 12px;font-size:13px" onclick="delLocation('${l.id}')">Delete</button></div>`;
+  }).join('');
+}
+
+function addLocation(){
+  const lotNum=document.getElementById('loc-lot').value.trim();
+  const cityId=document.getElementById('loc-city').value;
+  if(!lotNum){toast('Enter a lot number','err');return}
+  if(!cityId){toast('Select a city','err');return}
+  const city=(DB.cities||[]).find(ct=>ct.id===cityId);
+  const name=city?city.name:'';
+  if(DB.locations.find(l=>l.lotNum===lotNum&&l.cityId===cityId)){toast('This lot already exists in this city','err');return}
+  DB.locations.push({id:uid(),lotNum,name,cityId,ts:Date.now()});
+  save();
+  document.getElementById('loc-lot').value='';
+  document.getElementById('loc-city').value='';
+  renderLocList();fillProjLocSel();fillCitySel();
+  toast('Location added ✓');
+}
+
+function delLocation(id){
+  if(!confirm('Delete this location?'))return;
+  DB.locations=DB.locations.filter(l=>l.id!==id);
+  save();renderLocList();fillProjLocSel();toast('Location deleted');
+}
+
+function renderPayTypeList(type){
+  const el=document.getElementById('pt-list-'+type);
+  const list=DB.payTypes[type]||[];
+  if(!list.length){el.innerHTML=`<div class="empty" style="padding:16px"><div class="empty-icon" style="font-size:26px">💳</div>No payment types yet.</div>`;return}
+  el.innerHTML=list.map(p=>`<div class="mcard ptype"><div class="minfo"><div class="mname">${esc(p.name)}</div><span class="badge ptype-${type}">${typeName[type]}</span></div><button class="btn bdng" style="padding:9px 12px;font-size:13px" onclick="delPayType('${type}','${p.id}')">Delete</button></div>`).join('');
+}
+
+function addPayType(type){
+  const inp=document.getElementById('pt-name-'+type);
+  const name=inp.value.trim();
+  if(!name){toast('Enter a payment type name','err');return}
+  if(!DB.payTypes[type])DB.payTypes[type]=[];
+  if(DB.payTypes[type].find(p=>p.name.toLowerCase()===name.toLowerCase())){toast('Already exists','err');return}
+  DB.payTypes[type].push({id:uid(),name,ts:Date.now()});
+  save();inp.value='';renderPayTypeList(type);toast('Payment type added ✓');
+}
+
+function delPayType(type,id){
+  if(!confirm('Delete this payment type?'))return;
+  DB.payTypes[type]=DB.payTypes[type].filter(p=>p.id!==id);
+  save();renderPayTypeList(type);toast('Deleted');
+}
+
+/* ── RECEIVERS ── */
+function renderReceiverList(){
+  const el=document.getElementById('receiver-list');
+  if(!el)return;
+  if(!DB.receivers||!DB.receivers.length){
+    el.innerHTML=`<div class="empty" style="padding:16px"><div class="empty-icon" style="font-size:26px">👤</div>No receivers yet.</div>`;return;
+  }
+  el.innerHTML=DB.receivers.map(r=>`
+    <div class="mcard" style="border-left:3px solid var(--txt3)">
+      <div class="minfo">
+        <div class="mname">${esc(r.name)}</div>
+        ${r.phone?`<div style="font-size:12px;color:var(--txt2);margin-top:2px">📞 ${esc(r.phone)}</div>`:''}
+        ${r.notes?`<div style="font-size:11px;color:var(--txt3);margin-top:2px">${esc(r.notes)}</div>`:''}
+      </div>
+      <button class="btn bdng" style="padding:9px 12px;font-size:13px" onclick="delReceiver('${r.id}')">Delete</button>
+    </div>`).join('');
+}
+
+function addReceiver(){
+  const name=document.getElementById('rec-name').value.trim();
+  const phone=document.getElementById('rec-phone').value.trim();
+  const notes=document.getElementById('rec-notes').value.trim();
+  if(!name){toast('Enter a receiver name','err');return}
+  if(!DB.receivers)DB.receivers=[];
+  if(DB.receivers.find(r=>r.name.toLowerCase()===name.toLowerCase())){toast('Receiver already exists','err');return}
+  DB.receivers.push({id:uid(),name,phone,notes,ts:Date.now()});
+  save();
+  document.getElementById('rec-name').value='';
+  document.getElementById('rec-phone').value='';
+  document.getElementById('rec-notes').value='';
+  renderReceiverList();fillReceiverSel();
+  toast('Receiver added ✓');
+}
+
+function delReceiver(id){
+  if(!confirm('Delete this receiver?'))return;
+  DB.receivers=DB.receivers.filter(r=>r.id!==id);
+  save();renderReceiverList();fillReceiverSel();toast('Receiver deleted');
+}
+
+function fillReceiverSel(){
+  const sel=document.getElementById('treceiver');
+  if(!sel)return;
+  const opts='<option value="">— Select receiver (optional) —</option>'+(DB.receivers||[]).map(r=>`<option value="${r.id}">${esc(r.name)}${r.phone?' · '+esc(r.phone):''}</option>`).join('');
+  sel.innerHTML=opts;
+}
+
+function fillRELinkSel(){
+  const sel=document.getElementById('t-re-proj');
+  if(!sel)return;
+  sel.innerHTML='<option value="">— Not linked to RE project —</option>'
+    +DB.projects.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
+  sel.onchange=function(){
+    const note=document.getElementById('re-link-note');
+    if(note)note.style.display=this.value?'block':'none';
+  };
+}
+
+/* ── TRANSACTIONS ── */
+let txType='income',preAcc=null,preToSafe=false,preSpecialType=null;
+
+function fillTA(){
+  document.getElementById('ta').innerHTML=DB.accounts.map(a=>`<option value="${a.id}">${typeIcon[a.type]} ${esc(a.name)}</option>`).join('');
+  if(preAcc)document.getElementById('ta').value=preAcc;
+  onAccChange();
+}
+
+function fillProjSel(){
+  const sel=document.getElementById('tproj');
+  if(!DB.projects.length)sel.innerHTML='<option value="">— No projects, add in Accounts —</option>';
+  else sel.innerHTML=DB.projects.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
+}
+
+function fillPayTypeSel(accType){
+  const sel=document.getElementById('tptype');
+  const list=DB.payTypes[accType]||[];
+  if(!list.length)sel.innerHTML='<option value="">— No types yet, add in Database —</option>';
+  else sel.innerHTML='<option value="">— Select type (optional) —</option>'+list.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
+}
+
+function onAccChange(){
+  const aid=document.getElementById('ta').value;
+  const acc=DB.accounts.find(a=>a.id===aid);
+  if(!acc)return;
+  const isRE=acc.type==='re';
+  const isPayment=txType==='payment';
+  const isPersonal=(acc.type==='eng'||acc.type==='con');
+
+  const isSpecial=!!preSpecialType;
+  document.getElementById('fld-proj').style.display=(isRE&&isPayment&&!isSpecial)?'block':'none';
+  // show payment type for regular payments and safe-pay
+  const showPType=isPayment&&(!isSpecial||preSpecialType==='pocket-exp'||preSpecialType==='payment');
+  document.getElementById('fld-ptype').style.display=showPType?'block':'none';
+  document.getElementById('fld-receiver').style.display=isPayment?'block':'none';
+  if(isPayment)fillReceiverSel();
+  document.getElementById('fld-safe').style.display='none';
+
+  // RE project link — shown for Eng/Con income
+  const showRELink = !isPayment && isPersonal && DB.projects.length > 0;
+  document.getElementById('fld-re-link').style.display = showRELink ? 'block' : 'none';
+  if(showRELink) fillRELinkSel();
+
+  if(isPayment)fillPayTypeSel(acc.type);
+
+  // If pre-set to-safe
+  const cb=document.getElementById('to-safe');
+  cb.checked=preToSafe;
+  updateSafeToggleUI(preToSafe);
+}
+
+function onPayTypeChange(){}
+
+function onSafeToggle(){
+  const checked=document.getElementById('to-safe').checked;
+  updateSafeToggleUI(checked);
+}
+
+function updateSafeToggleUI(on){
+  const track=document.getElementById('safe-toggle-track');
+  const thumb=document.getElementById('safe-toggle-thumb');
+  track.style.background=on?'rgba(246,216,96,.25)':' var(--surf3)';
+  track.style.borderColor=on?'rgba(246,216,96,.4)':'var(--bdr)';
+  thumb.style.background=on?'var(--gold)':'var(--txt3)';
+  thumb.style.left=on?'22px':'2px';
+}
+
+function openTx(){
+  preAcc=null;preToSafe=false;preSpecialType=null;
+  setType('income');fillTA();fillProjSel();
+  document.getElementById('tam').value='';document.getElementById('tds').value='';
+  document.getElementById('tdt').value=today();document.getElementById('tus').value='';
+  const rs=document.getElementById('treceiver');if(rs)rs.value='';
+  const rl=document.getElementById('t-re-proj');if(rl)rl.value='';
+  const rln=document.getElementById('re-link-note');if(rln)rln.style.display='none';
+  document.getElementById('shsub').textContent='// new transaction';
+  openSheet();
+}
+
+function openTxFor(aid,tp,toSafe=false){
+  preAcc=aid;preToSafe=toSafe;
+  const uiType=tp==='income'?'income':'payment';
+  setType(uiType);fillTA();fillProjSel();
+  document.getElementById('ta').value=aid;
+  document.getElementById('tam').value='';document.getElementById('tds').value='';
+  document.getElementById('tdt').value=today();document.getElementById('tus').value='';
+  const rs2=document.getElementById('treceiver');if(rs2)rs2.value='';
+  const rl2=document.getElementById('t-re-proj');if(rl2)rl2.value='';
+  const rln2=document.getElementById('re-link-note');if(rln2)rln2.style.display='none';
+  const a=DB.accounts.find(x=>x.id===aid);
+  const pTxLabels2={'to-safe':'// Pocket → Personal Safe','from-safe':'// Personal Safe → Pocket','pocket-exp':'// Pocket Expense'};
+  document.getElementById('shsub').textContent=pTxLabels2[tp]||'// '+(a?a.name:'');
+  preSpecialType=tp!=='income'&&tp!=='payment'?tp:null;
+  onAccChange();openSheet();
+}
+
+function setType(t){
+  txType=t;
+  document.getElementById('btn-i').classList.toggle('sel',t==='income');
+  document.getElementById('btn-p').classList.toggle('sel',t==='payment');
+  const aid=document.getElementById('ta').value;if(aid)onAccChange();
+}
+
+function saveTx(){
+  const aid=document.getElementById('ta').value;
+  const amt=parseFloat(document.getElementById('tam').value);
+  const desc=document.getElementById('tds').value.trim();
+  const date=document.getElementById('tdt').value;
+  const user=document.getElementById('tus').value.trim();
+  const acc=DB.accounts.find(a=>a.id===aid);
+  if(!acc){toast('Select an account','err');return}
+  if(!amt||amt<=0){toast('Enter a valid amount','err');return}
+  if(!date){toast('Pick a date','err');return}
+
+  const isRE=acc.type==='re';
+  const isPayment=txType==='payment';
+  const isPersonal=acc.type==='eng'||acc.type==='con';
+
+  let projId=null,ptId=null,toSafe=false;
+
+  if(isRE&&isPayment){
+    if(!DB.projects.length){toast('Add a Real Estate project first','err');return}
+    projId=document.getElementById('tproj').value||null;
+    if(!projId){toast('Select a project','err');return}
+  }
+
+  if(isPayment){
+    ptId=document.getElementById('tptype').value||null;
+    if(isPersonal)toSafe=document.getElementById('to-safe').checked;
+  }
+
+  const pTxType=preSpecialType||null;
+  preSpecialType=null;
+  const receiverId=document.getElementById('treceiver')?document.getElementById('treceiver').value||null:null;
+
+  // Check if Eng/Con income is linked to an RE project
+  const reLinkProjId = (!isPayment && isPersonal)
+    ? (document.getElementById('t-re-proj')?document.getElementById('t-re-proj').value||null:null)
+    : null;
+
+  // Record the Eng/Con income transaction
+  DB.transactions.push({id:uid(),aid,type:txType,amt,desc,date,user,projId,ptId,pTxType,receiverId,reLinkProjId,ts:Date.now()});
+
+  // Auto-create matching RE payment if linked
+  if(reLinkProjId){
+    const ra=reAcc();
+    if(ra){
+      const autoLabel=acc.type==='eng'?'Engineering Payment':'Contracting Payment';
+      const autoDesc=desc?(autoLabel+' — '+desc):autoLabel;
+      DB.transactions.push({
+        id:uid(),
+        aid:ra.id,
+        type:'payment',
+        amt,
+        desc:autoDesc,
+        date,
+        user,
+        projId:reLinkProjId,
+        ptId:null,
+        pTxType:null,
+        receiverId:null,
+        autoFrom:aid,  // reference back to source account
+        ts:Date.now()
+      });
+    }
+  }
+
+  save();closeSheet();
+  if(cv==='home'){renderSafes();renderSummary();renderList()}
+  const pTxMsgs={'to-safe':'Transferred to Personal Safe ✓','from-safe':'Safe → Pocket transfer recorded ✓','pocket-exp':'Pocket expense recorded ✓'};
+  const successMsg=reLinkProjId
+    ? 'Income added + RE project updated ✓'
+    : (txType==='income'?'Income added ✓':(pTxType?pTxMsgs[pTxType]:'Payment added ✓'));
+  toast(successMsg);
+}
+
+function delTx(id){
+  const el=document.getElementById('tx-'+id);
+  if(el)el.classList.add('flashing');
+  setTimeout(()=>{
+    if(!confirm('Delete this transaction?')){if(el)el.classList.remove('flashing');return}
+    const delTxObj=DB.transactions.find(t=>t.id===id);
+    DB.transactions=DB.transactions.filter(t=>t.id!==id);
+    // If this was an Eng/Con income linked to RE, also delete the auto-created RE payment
+    if(delTxObj&&delTxObj.reLinkProjId){
+      DB.transactions=DB.transactions.filter(t=>!(t.autoFrom===delTxObj.aid&&t.projId===delTxObj.reLinkProjId&&t.amt===delTxObj.amt&&t.date===delTxObj.date));
+    }
+    save();renderSafes();renderSummary();renderList();toast('Deleted');
+  },150);
+}
+
+/* ── SHEET ── */
+function openSheet(){
+  document.getElementById('sov').classList.add('open');
+  document.getElementById('sht').classList.add('open');
+  setTimeout(()=>document.getElementById('tam').focus(),350);
+}
+function closeSheet(){
+  document.getElementById('sov').classList.remove('open');
+  document.getElementById('sht').classList.remove('open');
+}
+
+/* ── REPORT ── */
+function renderRepF(){
+  if(!document.getElementById('rf').value){
+    const f=new Date();f.setMonth(f.getMonth()-1);
+    document.getElementById('rf').value=f.toISOString().split('T')[0];
+    document.getElementById('rt').value=today();
+  }
+}
+
+function genReport(){
+  const scope=document.getElementById('rscope').value;
+  const from=document.getElementById('rf').value;
+  const to=document.getElementById('rt').value;
+  const now=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+
+  function fTx(txs){return txs.filter(t=>{if(from&&t.date<from)return false;if(to&&t.date>to)return false;return true})}
+
+  const L=[];
+  L.push('📊 FINANCIAL REPORT');
+  L.push('═'.repeat(40));
+  L.push(`Generated: ${now}`);
+  L.push(`Period: ${from?fmtD(from):'All time'} → ${to?fmtD(to):'Today'}`);
+
+  function txLine(t,type){
+    const pt=(DB.payTypes[type]||[]).find(p=>p.id===t.ptId);
+    const proj=DB.projects.find(p=>p.id===t.projId);
+    const recv3=(DB.receivers||[]).find(r=>r.id===t.receiverId);
+    const tags=[pt?pt.name:null,recv3?recv3.name:null,proj?proj.name:null,t.toSafe?'→ Personal Safe':null,t.user||null].filter(Boolean).join(' · ');
+    return`  ${t.type==='income'?'⬆':'⬇'} ${fmtD(t.date)}  ${fmt(t.amt).padStart(10)}  ${t.desc||'—'}${tags?' ['+tags+']':''}`;
+  }
+
+  if(scope==='safes'||scope==='all'){
+    const re=reSafe();
+    const pc2=personalCalc();
+    L.push('');L.push('💰 SAFES SUMMARY');L.push('─'.repeat(40));
+    L.push(`🏦 RE Safe:          ${fmt(re.safe)}`);
+    L.push(`   Opening:          +${fmt(re.open)}`);
+    L.push(`   Income received:  +${fmt(re.inc)}`);
+    L.push(`   Project payments: -${fmt(re.projPay)}`);
+    L.push('');
+    L.push(`💵 Pocket:           ${fmt(pc2.pocket)}`);
+    L.push(`   Income:           +${fmt(pc2.income)}`);
+    L.push(`   From safe:        +${fmt(pc2.fromSafe)}`);
+    L.push(`   To safe:          -${fmt(pc2.toSafe)}`);
+    L.push(`   Payments:         -${fmt(pc2.payments)}`);
+    L.push('');
+    L.push(`🔒 Personal Safe:    ${fmt(pc2.safe)}`);
+    L.push(`   Opening:          +${fmt(pc2.opening)}`);
+    L.push(`   Received:         +${fmt(pc2.toSafe)}`);
+    L.push(`   Withdrawn:        -${fmt(pc2.fromSafe)}`);
+    if(scope==='safes'){showReport(L.join('\n'));return}
+  }
+
+  if(scope==='all'||scope==='re_summary'||scope==='re_projects'){
+    const ra=reAcc();
+    if(ra){
+      const reTxs=fTx(DB.transactions.filter(t=>t.aid===ra.id)).sort((a,b)=>a.date.localeCompare(b.date));
+      const inc=reTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0);
+      const pay=reTxs.filter(t=>t.type==='payment').reduce((s,t)=>s+t.amt,0);
+      if(scope==='re_summary'||scope==='all'){
+        L.push('');L.push(`🏗 REAL ESTATE · ${ra.name}`);L.push('─'.repeat(40));
+        L.push('INCOME');reTxs.filter(t=>t.type==='income').forEach(t=>L.push(txLine(t,'re')));
+        L.push('');L.push('PAYMENTS');reTxs.filter(t=>t.type==='payment').forEach(t=>L.push(txLine(t,'re')));
+        L.push('');L.push(`Income: ${fmt(inc)}  Payments: ${fmt(pay)}  RE Safe: ${fmt(inc-pay)}`);
+      }
+      if(scope==='re_projects'){
+        const rePay=fTx(DB.transactions.filter(t=>t.aid===ra.id&&t.type==='payment'));
+        L.push('');L.push(`🏗 ${ra.name} · PROJECTS`);L.push('─'.repeat(40));
+        let tot=0;
+        DB.projects.forEach(p=>{
+          const ptxs=rePay.filter(t=>t.projId===p.id).sort((a,b)=>a.date.localeCompare(b.date));
+          const pTot=ptxs.reduce((s,t)=>s+t.amt,0);tot+=pTot;
+          L.push('');L.push(`📌 ${p.name}${p.notes?' ('+p.notes+')':''}`);
+          if(!ptxs.length)L.push('  No payments in period');
+          else{ptxs.forEach(t=>L.push(txLine(t,'re')));L.push(`  Total: ${fmt(pTot)}`)}
+        });
+        L.push('');L.push('─'.repeat(40));
+        L.push(`Total Income: ${fmt(inc)}  Total Payments: ${fmt(tot)}  RE Safe: ${fmt(inc-tot)}`);
+      }
+    }
+  }
+
+  if(scope==='all'||scope==='eng_all'||scope==='con_all'||scope==='personal'){
+    const types=scope==='all'?['eng','con']:scope==='personal'?['eng','con']:scope==='eng_all'?['eng']:['con'];
+    types.forEach(type=>{
+      const accs=DB.accounts.filter(a=>a.type===type);
+      if(!accs.length)return;
+      L.push('');L.push(`${typeIcon[type]} ${typeName[type].toUpperCase()}`);L.push('─'.repeat(40));
+      accs.forEach(a=>{
+        const atx=fTx(DB.transactions.filter(t=>t.aid===a.id)).sort((x,y)=>x.date.localeCompare(y.date));
+        const inc=atx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0);
+        const pay=atx.filter(t=>t.type==='payment').reduce((s,t)=>s+t.amt,0);
+        const toS=atx.filter(t=>t.type==='payment'&&t.toSafe).reduce((s,t)=>s+t.amt,0);
+        L.push(`  ${a.name}${a.client?' ('+a.client+')':''}`);
+        if(!atx.length)L.push('    No transactions in period');
+        else atx.forEach(t=>L.push('  '+txLine(t,type)));
+        L.push(`    Income: ${fmt(inc)}  Payments: ${fmt(pay)}  To Safe: ${fmt(toS)}  Balance: ${fmt(inc-pay)}`);
+      });
+    });
+    if(scope==='personal'||scope==='all'){
+      const pInc2=personalIncome();const pSafe2=personalSafeBal();
+      L.push('');L.push('👤 PERSONAL SAFE');L.push('─'.repeat(40));
+      L.push(`Total Personal Income:  ${fmt(pInc2)}`);
+      L.push(`Total Kept in Safe:     ${fmt(pSafe2)}`);
+      L.push(`Net Pocket (Available): ${fmt(pInc2-pSafe2)}`);
+    }
+  }
+
+  if(scope==='all'){
+    const allF=fTx(DB.transactions);
+    const gI=allF.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0);
+    const gP=allF.filter(t=>t.type==='payment').reduce((s,t)=>s+t.amt,0);
+    L.push('');L.push('═'.repeat(40));L.push('GRAND TOTAL');
+    L.push(`Total Income:   ${fmt(gI)}`);L.push(`Total Payments: ${fmt(gP)}`);L.push(`Net:            ${fmt(gI-gP)}`);
+  }
+
+  showReport(L.join('\n'));
+}
+
+function showReport(txt){
+  window._rt=txt;
+  document.getElementById('rout').textContent=txt;
+  const scope=document.getElementById('rscope');
+  const label=scope?scope.options[scope.selectedIndex].text:'report';
+  document.getElementById('report-scope-label').textContent='// '+label;
+  // open preview sheet
+  document.getElementById('sov-report').classList.add('open');
+  document.getElementById('sht-report').classList.add('open');
+  toast('Report ready ✓');
+}
+function closeReportSheet(){
+  document.getElementById('sov-report').classList.remove('open');
+  document.getElementById('sht-report').classList.remove('open');
+}
+/* ── EXPORT / IMPORT ── */
+async function syncNow(){
+  const btn=document.getElementById('sync-now-btn');
+  const status=document.getElementById('sync-status');
+  if(btn){btn.textContent='⏳ Syncing...';btn.disabled=true;}
+  if(status)status.style.color='var(--txt3)';
+  try{
+    if(!window._saveToFirestore){
+      if(status){status.textContent='Status: Firebase not connected';status.style.color='var(--red)';}
+      if(btn){btn.textContent='☁️ Sync Now';btn.disabled=false;}
+      return;
+    }
+    await window._saveToFirestore(DB);
+    const now=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    if(status){status.textContent='Status: Synced at '+now+' ✓';status.style.color='var(--grn)';}
+    toast('Synced to Firebase ✓');
+  }catch(e){
+    if(status){status.textContent='Status: Sync failed — check connection';status.style.color='var(--red)';}
+    toast('Sync failed — check connection','err');
+  }
+  if(btn){btn.textContent='☁️ Sync Now';btn.disabled=false;}
+}
+
+function exportData(){
+  const json=JSON.stringify(DB,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const now=new Date();
+  const stamp=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  a.href=url;a.download='vault-backup-'+stamp+'.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Backup downloaded ✓');
+}
+
+function importData(input){
+  const file=input.files[0];
+  if(!file)return;
+  if(!confirm('Import this backup? All current data will be replaced. This cannot be undone.'))return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!data.accounts&&!data.transactions){toast('Invalid backup file','err');return}
+      DB=applyDefaults(data);
+      save();
+      renderSafes();renderSummary();renderList();
+      toast('Data imported successfully ✓');
+    }catch(err){toast('Failed to read file','err');}
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
+function copyRep(){if(!window._rt){toast('Generate first','err');return}navigator.clipboard.writeText(window._rt).then(()=>toast('Copied ✓')).catch(()=>{const ta=document.createElement('textarea');ta.value=window._rt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();toast('Copied ✓')})}
+function waRep(){if(!window._rt){toast('Generate first','err');return}window.open('https://wa.me/?text='+encodeURIComponent(window._rt),'_blank')}
+
+/* ── PWA ── */
+let dp=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;document.getElementById('ibanner').classList.remove('hidden')});
+window.addEventListener('appinstalled',()=>{document.getElementById('ibanner').classList.add('hidden');dp=null;toast('App installed ✓')});
+function installPWA(){if(dp){dp.prompt();dp.userChoice.then(()=>dp=null)}else toast('Tap Share → "Add to Home Screen"')}
+
+/* ── OFFLINE ── */
+function uo(){document.body.classList.toggle('offline',!navigator.onLine)}
+window.addEventListener('online',uo);window.addEventListener('offline',uo);uo();
+
+/* ── INIT — Firebase is the sole data source, boots via onSnapshot above ── */
+// DB initialised empty; Firebase onSnapshot populates it and boots the app
+</script>
+</body>
+</html>
