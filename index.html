@@ -1,0 +1,1894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Vault">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Vault</title>
+
+<!-- PWA Manifest (inline) -->
+<script>
+(function(){
+  var icon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%230a0a0f'/%3E%3Ccircle cx='96' cy='96' r='56' fill='none' stroke='%2300e5a0' stroke-width='8'/%3E%3Ccircle cx='96' cy='96' r='32' fill='none' stroke='%2300e5a0' stroke-width='4'/%3E%3Ccircle cx='96' cy='96' r='10' fill='%2300e5a0'/%3E%3Cline x1='96' y1='40' x2='96' y2='30' stroke='%2300e5a0' stroke-width='6' stroke-linecap='round'/%3E%3Cline x1='96' y1='162' x2='96' y2='152' stroke='%2300e5a0' stroke-width='6' stroke-linecap='round'/%3E%3Cline x1='40' y1='96' x2='30' y2='96' stroke='%2300e5a0' stroke-width='6' stroke-linecap='round'/%3E%3Cline x1='162' y1='96' x2='152' y2='96' stroke='%2300e5a0' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E";
+  var mf = {name:"Vault – Financial Tracker",short_name:"Vault",start_url:"./",display:"standalone",background_color:"#0a0a0f",theme_color:"#0a0a0f",orientation:"portrait",icons:[{src:icon,sizes:"192x192",type:"image/svg+xml"}]};
+  var blob = new Blob([JSON.stringify(mf)],{type:'application/json'});
+  document.write('<link rel="manifest" href="'+URL.createObjectURL(blob)+'">');
+  document.write('<link rel="icon" type="image/svg+xml" href="'+icon+'">');
+  document.write('<link rel="apple-touch-icon" href="'+icon+'">');
+})();
+</script>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp }            from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const cfg = {
+    apiKey:"AIzaSyAnQQNQP9yrfBlkvU09Q_jRqZbqWrpocDE",
+    authDomain:"personalvault-1883d.firebaseapp.com",
+    databaseURL:"https://personalvault-1883d-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId:"personalvault-1883d",
+    storageBucket:"personalvault-1883d.firebasestorage.app",
+    messagingSenderId:"558797006785",
+    appId:"1:558797006785:web:159df283b7fff3a826f140"
+  };
+
+  const db = getDatabase(initializeApp(cfg));
+  const R  = ref(db, 'vault_data');
+
+  // Expose globally
+  window._fbSave   = d  => set(R, d);
+  window._fbListen = cb => onValue(R, s => cb(s.exists() ? s.val() : null));
+  window._fbReady  = true;
+
+  // Start listening — this drives everything
+  window._fbListen(function(cloud) {
+    window._cloudData = cloud;          // store latest cloud snapshot
+    if (window._appBooted) {
+      applyCloud(cloud);                // app running → live update
+    }
+    // else: DOMContentLoaded will pick up _cloudData
+  });
+</script>
+
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Fira+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ── RESET & ROOT ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+
+:root {
+  --bg:    #0a0a0f;
+  --s1:    #111118;
+  --s2:    #18181f;
+  --s3:    #222230;
+  --bdr:   #2a2a38;
+  --bdr2:  #353548;
+  --acc:   #00e5a0;
+  --acc2:  #00b87a;
+  --red:   #ff5566;
+  --blue:  #4d9fff;
+  --pur:   #a07aff;
+  --gold:  #ffcc44;
+  --teal:  #00d4d4;
+  --org:   #ff8c44;
+  --txt:   #e8e8f2;
+  --txt2:  #8888aa;
+  --txt3:  #44445a;
+  --r:     12px;
+  --rsm:   8px;
+  --st: env(safe-area-inset-top,0px);
+  --sb: env(safe-area-inset-bottom,0px);
+  --sl: env(safe-area-inset-left,0px);
+  --sr: env(safe-area-inset-right,0px);
+  --hh: 56px;
+  --nh: 62px;
+  --font: 'Space Grotesk', sans-serif;
+  --mono: 'Fira Mono', monospace;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--txt);
+  -webkit-font-smoothing: antialiased;
+  position: fixed;
+  width: 100%;
+}
+
+/* ── HEADER ── */
+.hdr {
+  position: fixed; top:0; left:0; right:0;
+  height: calc(var(--hh) + var(--st));
+  padding-top: var(--st);
+  padding-left: calc(16px + var(--sl));
+  padding-right: calc(16px + var(--sr));
+  background: rgba(10,10,15,.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--bdr);
+  display: flex; align-items: center; justify-content: space-between;
+  z-index: 200;
+}
+.hdr-logo { font-size: 20px; font-weight: 700; letter-spacing: -.5px; color: var(--acc); }
+.hdr-sub  { font-size: 10px; color: var(--txt3); font-family: var(--mono); margin-top: 1px; }
+.sync-row { display: flex; align-items: center; gap: 7px; }
+#sync-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--txt3); transition: background .5s;
+}
+#sync-dot.ok  { background: var(--acc); }
+#sync-dot.err { background: var(--red); }
+#sync-dot.pending { background: var(--gold); }
+
+/* ── SCROLL AREA ── */
+.scroll {
+  position: fixed;
+  top: calc(var(--hh) + var(--st));
+  left:0; right:0;
+  bottom: calc(var(--nh) + var(--sb));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+.wrap {
+  padding: 16px calc(16px + var(--sl)) 20px calc(16px + var(--sr));
+  max-width: 640px; margin: 0 auto;
+}
+
+/* ── BOTTOM NAV ── */
+.bnav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: calc(var(--nh) + var(--sb));
+  padding-bottom: var(--sb);
+  background: rgba(17,17,24,.97);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid var(--bdr);
+  display: flex; align-items: stretch; z-index: 200;
+}
+.ni {
+  flex:1; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:3px;
+  border:none; background:none; color:var(--txt3);
+  font-size:11px; font-weight:600; font-family:var(--font);
+  cursor:pointer; padding:4px 2px; min-height:44px;
+  transition: color .2s;
+}
+.ni.on { color: var(--acc); }
+.ni-ic { font-size:20px; line-height:1; }
+
+/* ── FAB ── */
+.fab {
+  position: fixed;
+  bottom: calc(var(--nh) + var(--sb) + 12px);
+  right: calc(14px + var(--sr));
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--acc); color: #0a0a0f;
+  font-size: 28px; font-weight: 700;
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 24px rgba(0,229,160,.3);
+  z-index: 150; transition: transform .15s, box-shadow .15s;
+}
+.fab:active { transform: scale(.9); box-shadow: 0 2px 10px rgba(0,229,160,.2); }
+
+/* ── VIEWS ── */
+.view { display: none; }
+.view.on { display: block; }
+
+/* ── SECTION LABEL ── */
+.sec {
+  font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--txt3);
+  font-family: var(--mono);
+  margin: 18px 0 10px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sec:first-child { margin-top: 4px; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--s1);
+  border: 1px solid var(--bdr);
+  border-radius: var(--r);
+  padding: 16px;
+  margin-bottom: 10px;
+}
+.card.acc { border-left: 3px solid var(--acc); }
+.card.re  { border-left: 3px solid var(--org); }
+.card.eng { border-left: 3px solid var(--blue); }
+.card.con { border-left: 3px solid var(--teal); }
+.card.pur { border-left: 3px solid var(--pur); }
+
+/* ── SAFE GRID ── */
+.safe-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+.safe-card {
+  background: var(--s1); border: 1px solid var(--bdr);
+  border-radius: var(--r); padding:16px 14px;
+}
+.safe-lbl { font-size:9px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; color:var(--txt3); font-family:var(--mono); margin-bottom:8px; }
+.safe-amt { font-family:var(--mono); font-size:22px; font-weight:500; line-height:1; margin-bottom:10px; }
+.safe-amt.pos { color:var(--acc); }
+.safe-amt.neg { color:var(--red); }
+.safe-rows { border-top:1px solid var(--bdr); padding-top:8px; display:flex; flex-direction:column; gap:4px; }
+.safe-row { display:flex; justify-content:space-between; font-size:11px; }
+.safe-row span:first-child { color:var(--txt3); }
+.safe-row span:last-child  { font-family:var(--mono); font-weight:500; }
+
+/* ── SUMMARY BOX ── */
+.sumbox {
+  background:var(--s1); border:1px solid var(--bdr);
+  border-radius:var(--r); padding:14px 16px; margin-bottom:10px;
+}
+.sumbox-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.sumbox-title { font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--txt2); font-family:var(--mono); }
+.sumbox-val { font-family:var(--mono); font-size:18px; font-weight:500; }
+.sum-rows { border-top:1px solid var(--bdr); padding-top:10px; display:flex; flex-direction:column; gap:6px; }
+.sum-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.sum-row-n { font-size:12px; color:var(--txt2); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sum-row-v { font-family:var(--mono); font-size:12px; font-weight:500; flex-shrink:0; }
+.sum-div   { height:1px; background:var(--bdr); margin:4px 0; }
+.sum-total-row .sum-row-n { font-weight:700; color:var(--txt); }
+.sum-total-row .sum-row-v { font-size:14px; }
+
+/* ── ACCOUNT CARDS ── */
+.acard { background:var(--s1); border:1px solid var(--bdr); border-radius:var(--r); margin-bottom:10px; overflow:hidden; }
+.acard.re  { border-left:3px solid var(--org); }
+.acard.eng { border-left:3px solid var(--blue); }
+.acard.con { border-left:3px solid var(--teal); }
+.atop {
+  display:flex; align-items:center; padding:14px 14px;
+  cursor:pointer; gap:12px; min-height:68px; user-select:none;
+}
+.aico  { font-size:24px; flex-shrink:0; }
+.ainf  { flex:1; min-width:0; }
+.aname { font-size:15px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.asub  { font-size:10px; color:var(--txt3); font-family:var(--mono); text-transform:uppercase; letter-spacing:.8px; margin-top:2px; }
+.argt  { text-align:right; flex-shrink:0; }
+.argt-l { font-size:9px; text-transform:uppercase; letter-spacing:1px; color:var(--txt3); font-family:var(--mono); }
+.argt-v { font-family:var(--mono); font-size:17px; font-weight:500; }
+.chv { color:var(--txt3); font-size:13px; margin-left:6px; transition:transform .25s; flex-shrink:0; }
+.acard.open .chv { transform:rotate(180deg); }
+.abody { max-height:0; overflow:hidden; transition:max-height .35s ease; }
+.acard.open .abody { max-height:9000px; border-top:1px solid var(--bdr); }
+.abody-in { padding:12px 14px 14px; }
+
+/* ── SUBTABS ── */
+.stabs { display:flex; border-radius:var(--rsm); overflow:hidden; border:1px solid var(--bdr); margin-bottom:10px; }
+.stab  { flex:1; padding:9px; font-size:12px; font-weight:600; border:none; background:var(--s2); color:var(--txt3); cursor:pointer; font-family:var(--font); transition:all .2s; min-height:40px; }
+.stab.on { background:var(--s3); color:var(--txt); }
+.stab:not(:last-child){ border-right:1px solid var(--bdr); }
+
+/* ── TX LIST ── */
+.txlist { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+.txrow  { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--s2); border-radius:var(--rsm); border:1px solid var(--bdr); }
+.txdot  { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.txdot.i { background:var(--acc); }
+.txdot.p { background:var(--red); }
+.txdot.s { background:var(--gold); }
+.txinf  { flex:1; min-width:0; }
+.txdsc  { font-size:13px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.txmta  { font-size:11px; color:var(--txt3); font-family:var(--mono); margin-top:1px; }
+.txamt  { font-family:var(--mono); font-size:13px; font-weight:500; flex-shrink:0; }
+.txamt.i { color:var(--acc); }
+.txamt.p { color:var(--red); }
+.txamt.s { color:var(--gold); }
+.txdel  { background:none; border:none; color:var(--txt3); cursor:pointer; font-size:20px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:6px; flex-shrink:0; transition:color .15s, background .15s; }
+.txdel:active { color:var(--red); background:rgba(255,85,102,.12); }
+.notx   { color:var(--txt3); font-size:12px; text-align:center; padding:14px; font-family:var(--mono); }
+
+/* ── QSTATS ── */
+.qstats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; margin-bottom:12px; }
+.qstat  { background:var(--s2); border:1px solid var(--bdr); border-radius:var(--rsm); padding:10px 11px; }
+.qstat-l { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--txt3); font-family:var(--mono); margin-bottom:3px; }
+.qstat-v { font-family:var(--mono); font-size:14px; font-weight:500; }
+
+/* ── PROJ ROWS ── */
+.proj-row { display:flex; align-items:center; justify-content:space-between; padding:8px 11px; background:var(--s2); border-radius:var(--rsm); border:1px solid var(--bdr); margin-bottom:5px; gap:8px; }
+.proj-dot { width:7px; height:7px; border-radius:50%; background:var(--pur); flex-shrink:0; }
+.proj-nm  { font-size:12px; font-weight:500; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--txt2); }
+.proj-amt { font-family:var(--mono); font-size:12px; color:var(--red); flex-shrink:0; }
+
+/* ── ACARD ACTIONS ── */
+.aacts { display:flex; gap:7px; flex-wrap:wrap; }
+.aacts .btn { flex:1; justify-content:center; min-width:110px; }
+
+/* ── MANAGE CARDS ── */
+.mcard { background:var(--s1); border:1px solid var(--bdr); border-radius:var(--r); padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; min-height:60px; }
+.mcard.eng { border-left:3px solid var(--blue); }
+.mcard.con { border-left:3px solid var(--teal); }
+.mcard.proj { border-left:3px solid var(--pur); }
+.mcard.loc  { border-left:3px solid var(--txt3); }
+.mcard.rec  { border-left:3px solid var(--txt3); }
+.mcard.pt   { border-left:3px solid var(--txt3); }
+.minf { flex:1; min-width:0; }
+.mnam { font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mmta { font-size:11px; color:var(--txt3); font-family:var(--mono); margin-top:3px; }
+.badge { display:inline-block; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; padding:2px 7px; border-radius:6px; margin-top:4px; font-family:var(--mono); }
+.badge.eng { background:rgba(77,159,255,.15); color:var(--blue); }
+.badge.con { background:rgba(0,212,212,.15); color:var(--teal); }
+.badge.proj{ background:rgba(160,122,255,.15); color:var(--pur); }
+.badge.re  { background:rgba(255,140,68,.15); color:var(--org); }
+
+/* ── ADD BOX ── */
+.addbox { background:var(--s2); border:1.5px dashed var(--bdr2); border-radius:var(--r); padding:16px; margin-top:4px; }
+.addbox-t { font-size:13px; font-weight:600; color:var(--txt2); margin-bottom:14px; }
+
+/* ── DB TABS ── */
+.dbtabs { display:flex; border-radius:var(--rsm); overflow:hidden; border:1px solid var(--bdr); margin-bottom:14px; }
+.dbtab  { flex:1; padding:9px 4px; font-size:10px; font-weight:700; border:none; background:var(--s2); color:var(--txt3); cursor:pointer; font-family:var(--font); transition:all .2s; min-height:42px; text-align:center; line-height:1.3; }
+.dbtab.on { background:var(--s3); color:var(--txt); }
+.dbtab:not(:last-child){ border-right:1px solid var(--bdr); }
+.dbpanel { display:none; }
+.dbpanel.on { display:block; }
+
+/* ── PILLS ── */
+.pills { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; }
+.pills::-webkit-scrollbar { display:none; }
+.pill { flex-shrink:0; padding:6px 14px; border-radius:20px; font-size:12px; font-weight:600; border:1px solid var(--bdr); background:transparent; color:var(--txt3); cursor:pointer; font-family:var(--font); transition:all .18s; min-height:34px; display:flex; align-items:center; }
+.pill.on { background:var(--s3); color:var(--txt); border-color:var(--bdr2); }
+
+/* ── FORM ── */
+.fg { margin-bottom:13px; }
+.flbl { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--txt3); font-family:var(--mono); margin-bottom:5px; display:block; }
+input, select {
+  background:var(--s2); border:1px solid var(--bdr); border-radius:var(--rsm);
+  color:var(--txt); padding:12px 13px; font-size:16px; font-family:var(--font);
+  width:100%; outline:none; transition:border-color .2s;
+  -webkit-appearance:none; appearance:none; min-height:46px;
+}
+input:focus, select:focus { border-color:var(--acc); }
+select {
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2344445a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 13px center; padding-right:34px;
+}
+select option { background:#18181f; }
+
+/* ── TYPE TOGGLE ── */
+.ttog { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
+.tbtn { padding:12px; border-radius:var(--rsm); border:1.5px solid var(--bdr); background:var(--s2); color:var(--txt3); font-size:14px; font-weight:600; cursor:pointer; text-align:center; font-family:var(--font); transition:all .2s; min-height:46px; }
+.tbtn.inc.on { background:rgba(0,229,160,.12); color:var(--acc); border-color:rgba(0,229,160,.3); }
+.tbtn.pay.on { background:rgba(255,85,102,.12); color:var(--red); border-color:rgba(255,85,102,.3); }
+
+/* ── BUTTONS ── */
+.btn { display:inline-flex; align-items:center; gap:6px; padding:11px 15px; border-radius:var(--rsm); font-size:14px; font-weight:600; cursor:pointer; border:none; font-family:var(--font); transition:all .15s; white-space:nowrap; min-height:46px; }
+.btn-p  { background:var(--acc); color:#0a0a0f; }
+.btn-p:active { filter:brightness(.88); }
+.btn-g  { background:var(--s3); color:var(--txt2); border:1px solid var(--bdr); }
+.btn-g:active { filter:brightness(.85); }
+.btn-i  { background:rgba(0,229,160,.1); color:var(--acc); border:1px solid rgba(0,229,160,.2); }
+.btn-r  { background:rgba(255,85,102,.1); color:var(--red); border:1px solid rgba(255,85,102,.2); }
+.btn-b  { background:rgba(77,159,255,.1); color:var(--blue); border:1px solid rgba(77,159,255,.2); }
+.btn-t  { background:rgba(0,212,212,.1); color:var(--teal); border:1px solid rgba(0,212,212,.2); }
+.btn-pu { background:rgba(160,122,255,.1); color:var(--pur); border:1px solid rgba(160,122,255,.2); }
+.btn-go { background:rgba(255,204,68,.1); color:var(--gold); border:1px solid rgba(255,204,68,.2); }
+.btn-w  { width:100%; justify-content:center; }
+
+/* ── SAFE TOGGLE ── */
+.safe-tog-wrap { background:rgba(255,204,68,.07); border:1px solid rgba(255,204,68,.2); border-radius:var(--rsm); padding:12px 13px; display:flex; align-items:center; gap:10px; margin-bottom:13px; }
+.safe-tog-txt  { flex:1; }
+.safe-tog-ttl  { font-size:13px; font-weight:600; color:var(--gold); }
+.safe-tog-sub  { font-size:11px; color:var(--txt3); font-family:var(--mono); margin-top:2px; }
+.tog-track { position:relative; width:42px; height:24px; flex-shrink:0; cursor:pointer; }
+.tog-track input { opacity:0; width:0; height:0; position:absolute; }
+.tog-bg { position:absolute; inset:0; border-radius:12px; background:var(--s3); border:1px solid var(--bdr); transition:all .2s; }
+.tog-knob { position:absolute; width:18px; height:18px; border-radius:50%; background:var(--txt3); top:3px; left:3px; transition:all .2s; }
+.tog-track input:checked ~ .tog-bg   { background:rgba(255,204,68,.2); border-color:rgba(255,204,68,.4); }
+.tog-track input:checked ~ .tog-knob { background:var(--gold); transform:translateX(18px); }
+
+/* ── RE LINK NOTE ── */
+.re-link-note { display:none; margin-top:6px; background:rgba(255,140,68,.1); border:1px solid rgba(255,140,68,.2); border-radius:var(--rsm); padding:8px 11px; font-size:11px; color:var(--org); font-family:var(--mono); }
+
+/* ── PERSONAL CARD ── */
+.pers-card { border-radius:var(--r); border:1px solid rgba(160,122,255,.3); background:linear-gradient(135deg,rgba(160,122,255,.07),rgba(160,122,255,.02)); padding:18px 16px; margin-bottom:16px; }
+
+/* ── SHEET ── */
+.sov { display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:300; backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
+.sov.on { display:block; }
+.sheet { position:fixed; bottom:0; left:0; right:0; background:var(--s1); border-radius:18px 18px 0 0; border:1px solid var(--bdr); border-bottom:none; padding-bottom:calc(16px + var(--sb)); z-index:301; max-height:94vh; overflow-y:auto; -webkit-overflow-scrolling:touch; transform:translateY(100%); transition:transform .3s cubic-bezier(.32,.72,0,1); }
+.sheet.on { transform:translateY(0); }
+.shandle { width:34px; height:4px; background:var(--bdr); border-radius:2px; margin:12px auto 0; }
+.shdr  { padding:14px 20px 0; }
+.shtit { font-size:22px; font-weight:700; margin-bottom:2px; }
+.shsub { font-size:11px; color:var(--txt3); font-family:var(--mono); }
+.shbdy { padding:16px 20px 0; }
+
+/* ── REPORT ── */
+.repre { background:var(--s2); border:1px solid var(--bdr); border-radius:var(--r); padding:14px; font-family:var(--mono); font-size:11px; line-height:1.9; color:var(--txt2); white-space:pre; overflow-x:auto; min-height:120px; margin-bottom:12px; }
+
+/* ── TOAST ── */
+#toast { position:fixed; bottom:calc(var(--nh) + var(--sb) + 10px); left:50%; transform:translateX(-50%) translateY(20px); background:var(--s1); border:1px solid var(--bdr); border-radius:10px; padding:10px 20px; font-size:13px; font-weight:600; z-index:999; transition:transform .25s,opacity .25s; white-space:nowrap; box-shadow:0 8px 32px rgba(0,0,0,.5); pointer-events:none; opacity:0; }
+#toast.on { transform:translateX(-50%) translateY(0); opacity:1; }
+#toast.ok { border-color:rgba(0,229,160,.3); color:var(--acc); }
+#toast.er { border-color:rgba(255,85,102,.3); color:var(--red); }
+
+/* ── LOADING ── */
+#loader { position:fixed; inset:0; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:9999; gap:16px; transition:opacity .4s; }
+#loader.out { opacity:0; pointer-events:none; }
+.ld-ring { width:48px; height:48px; border-radius:50%; border:3px solid var(--bdr); border-top-color:var(--acc); animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.ld-txt { font-family:var(--mono); font-size:11px; color:var(--txt3); letter-spacing:1px; }
+
+/* ── EMPTY ── */
+.empty { text-align:center; padding:20px; color:var(--txt3); font-family:var(--mono); font-size:12px; }
+.empty-ic { font-size:28px; margin-bottom:7px; }
+
+/* ── COLORS ── */
+.ca{color:var(--acc)}.cr{color:var(--red)}.cb{color:var(--blue)}.ct{color:var(--teal)}.cp{color:var(--pur)}.cg{color:var(--gold)}.co{color:var(--org)}
+
+@keyframes flash{0%,100%{opacity:1}50%{opacity:.2}}
+.flash { animation:flash .4s ease; }
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="ld-ring"></div>
+  <div style="font-size:22px;font-weight:700;color:var(--acc);letter-spacing:-0.5px">Vault</div>
+  <div class="ld-txt">connecting...</div>
+</div>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div>
+    <div class="hdr-logo">Vault</div>
+    <div class="hdr-sub">Financial Tracker · USD</div>
+  </div>
+  <div class="sync-row">
+    <div id="sync-dot" title="Sync status"></div>
+  </div>
+</header>
+
+<!-- SCROLL -->
+<div class="scroll" id="scr">
+
+<!-- ══ DASHBOARD ══ -->
+<div class="view on" id="v-home">
+<div class="wrap">
+  <div class="sec">Safes</div>
+  <div class="safe-grid" id="safe-cards"></div>
+  <div id="summary-blocks"></div>
+  <div class="sec" id="acc-sec-hdr">
+    <span>Accounts</span>
+    <div class="pills">
+      <button class="pill on" onclick="filterAcc('all',this)">All</button>
+      <button class="pill" onclick="filterAcc('re',this)">Real Estate</button>
+      <button class="pill" onclick="filterAcc('eng',this)">Engineering</button>
+      <button class="pill" onclick="filterAcc('con',this)">Contracting</button>
+    </div>
+  </div>
+  <div id="acc-list"></div>
+  <div style="height:80px"></div>
+</div>
+</div>
+
+<!-- ══ ACCOUNTS ══ -->
+<div class="view" id="v-accounts">
+<div class="wrap">
+
+  <div class="sec">Engineering Design</div>
+  <div id="ml-eng"></div>
+  <div class="addbox">
+    <div class="addbox-t">+ New Engineering Account</div>
+    <div class="fg"><label class="flbl">Location</label><select id="eng-loc"><option value="">— Select location —</option></select></div>
+    <div class="fg"><label class="flbl">Client / Notes (optional)</label><input type="text" id="eng-client" placeholder="e.g. Smith Co." autocomplete="off"></div>
+    <button class="btn btn-b btn-w" onclick="addAcc('eng')">Create Engineering Account</button>
+  </div>
+
+  <div class="sec" style="margin-top:20px">Contracting</div>
+  <div id="ml-con"></div>
+  <div class="addbox">
+    <div class="addbox-t">+ New Contracting Account</div>
+    <div class="fg"><label class="flbl">Location</label><select id="con-loc"><option value="">— Select location —</option></select></div>
+    <div class="fg"><label class="flbl">Client / Notes (optional)</label><input type="text" id="con-client" placeholder="e.g. Municipality" autocomplete="off"></div>
+    <button class="btn btn-t btn-w" onclick="addAcc('con')">Create Contracting Account</button>
+  </div>
+
+  <div class="sec" style="margin-top:20px">Real Estate Projects</div>
+  <div id="ml-proj"></div>
+  <div class="addbox">
+    <div class="addbox-t">+ New Real Estate Project</div>
+    <div class="fg"><label class="flbl">Location</label><select id="proj-loc"><option value="">— Select location —</option></select></div>
+    <div class="fg"><label class="flbl">Notes (optional)</label><input type="text" id="proj-notes" placeholder="Client, details…" autocomplete="off"></div>
+    <button class="btn btn-pu btn-w" onclick="addProject()">Create Project</button>
+  </div>
+
+  <div class="sec" style="margin-top:20px">RE Safe Opening Balance</div>
+  <div class="card">
+    <div style="font-size:12px;color:var(--txt3);font-family:var(--mono);margin-bottom:12px">Set the initial balance already in the RE Safe.</div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <input type="number" id="re-opening" placeholder="0.00" min="0" step="0.01" inputmode="decimal" style="flex:1">
+      <button class="btn btn-p" onclick="setOpening('re')">Set</button>
+    </div>
+    <div id="re-opening-cur" style="font-size:11px;color:var(--txt3);font-family:var(--mono);margin-top:9px"></div>
+  </div>
+
+  <div class="sec" style="margin-top:20px">Personal Safe Opening Balance</div>
+  <div class="card">
+    <div style="font-size:12px;color:var(--txt3);font-family:var(--mono);margin-bottom:12px">Set the initial balance already in the Personal Safe.</div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <input type="number" id="ps-opening" placeholder="0.00" min="0" step="0.01" inputmode="decimal" style="flex:1">
+      <button class="btn btn-p" onclick="setOpening('ps')">Set</button>
+    </div>
+    <div id="ps-opening-cur" style="font-size:11px;color:var(--txt3);font-family:var(--mono);margin-top:9px"></div>
+  </div>
+
+  <div style="height:80px"></div>
+</div>
+</div>
+
+<!-- ══ DATABASE ══ -->
+<div class="view" id="v-database">
+<div class="wrap">
+  <div class="sec" style="margin-top:4px">Databases</div>
+  <div class="dbtabs">
+    <button class="dbtab on" onclick="switchDB('cities',this)">Cities</button>
+    <button class="dbtab" onclick="switchDB('locations',this)">Locations</button>
+    <button class="dbtab" onclick="switchDB('receivers',this)">Receivers</button>
+    <button class="dbtab" onclick="switchDB('pt-re',this)">RE Types</button>
+    <button class="dbtab" onclick="switchDB('pt-eng',this)">Eng Types</button>
+    <button class="dbtab" onclick="switchDB('pt-con',this)">Con Types</button>
+    <button class="dbtab" onclick="switchDB('pt-personal',this)">Personal</button>
+  </div>
+
+  <div class="dbpanel on" id="db-cities">
+    <div id="city-list"></div>
+    <div class="addbox"><div class="addbox-t">+ New City</div>
+      <div class="fg"><label class="flbl">City / Region Name</label><input type="text" id="city-name" placeholder="e.g. Beirut" autocomplete="off"></div>
+      <button class="btn btn-p btn-w" onclick="addCity()">Add City</button>
+    </div>
+  </div>
+
+  <div class="dbpanel" id="db-locations">
+    <div id="loc-list"></div>
+    <div class="addbox"><div class="addbox-t">+ New Location</div>
+      <div class="fg"><label class="flbl">Lot Number</label><input type="text" id="loc-lot" placeholder="e.g. 1234" autocomplete="off"></div>
+      <div class="fg"><label class="flbl">City</label><select id="loc-city"><option value="">— Select city —</option></select></div>
+      <button class="btn btn-p btn-w" onclick="addLocation()">Add Location</button>
+    </div>
+  </div>
+
+  <div class="dbpanel" id="db-receivers">
+    <div id="rec-list"></div>
+    <div class="addbox"><div class="addbox-t">+ New Receiver / Supplier</div>
+      <div class="fg"><label class="flbl">Name</label><input type="text" id="rec-name" placeholder="e.g. Ahmad Steel Co." autocomplete="off"></div>
+      <div class="fg"><label class="flbl">Phone</label><input type="tel" id="rec-phone" placeholder="+961 70 123 456" autocomplete="off"></div>
+      <div class="fg"><label class="flbl">Notes (optional)</label><input type="text" id="rec-notes" placeholder="e.g. Concrete supplier" autocomplete="off"></div>
+      <button class="btn btn-p btn-w" onclick="addReceiver()">Add Receiver</button>
+    </div>
+  </div>
+
+  <div class="dbpanel" id="db-pt-re">
+    <div style="background:rgba(255,140,68,.08);border:1px solid rgba(255,140,68,.2);border-radius:var(--rsm);padding:9px 13px;margin-bottom:12px;font-size:12px;color:var(--org)">
+      RE payments deduct from the RE Safe. E.g. Contractor, Materials, Labor.
+    </div>
+    <div id="pt-list-re"></div>
+    <div class="addbox"><div class="addbox-t">+ New RE Payment Type</div>
+      <div class="fg"><label class="flbl">Type Name</label><input type="text" id="pt-name-re" placeholder="e.g. Contractor" autocomplete="off"></div>
+      <button class="btn btn-pu btn-w" onclick="addPType('re')">Add Type</button>
+    </div>
+  </div>
+
+  <div class="dbpanel" id="db-pt-eng">
+    <div style="background:rgba(255,204,68,.08);border:1px solid rgba(255,204,68,.2);border-radius:var(--rsm);padding:9px 13px;margin-bottom:12px;font-size:12px;color:var(--gold)">
+      Mark a payment as "To Personal Safe" to keep it in your safe balance.
+    </div>
+    <div id="pt-list-eng"></div>
+    <div class="addbox"><div class="addbox-t">+ New Engineering Payment Type</div>
+      <div class="fg"><label class="flbl">Type Name</label><input type="text" id="pt-name-eng" placeholder="e.g. Legal Fees, Fuel" autocomplete="off"></div>
+      <button class="btn btn-p btn-w" onclick="addPType('eng')">Add Type</button>
+    </div>
+  </div>
+
+  <div class="dbpanel" id="db-pt-con">
+    <div style="background:rgba(255,204,68,.08);border:1px solid rgba(255,204,68,.2);border-radius:var(--rsm);padding:9px 13px;margin-bottom:12px;font-size:12px;color:var(--gold)">
+      Mark a payment as "To Personal Safe" to keep it in your safe balance.
+    </div>
+    <div id="pt-list-con"></div>
+    <div class="addbox"><div class="addbox-t">+ New Contracting Payment Type</div>
+      <div class="fg"><label class="flbl">Type Name</label><input type="text" id="pt-name-con" placeholder="e.g. Wood, Materials" autocomplete="off"></div>
+      <button class="btn btn-p btn-w" onclick="addPType('con')">Add Type</button>
+    </div>
+  </div>
+
+  <div class="dbpanel" id="db-pt-personal">
+    <div id="pt-list-personal"></div>
+    <div class="addbox"><div class="addbox-t">+ New Personal Expense Type</div>
+      <div class="fg"><label class="flbl">Type Name</label><input type="text" id="pt-name-personal" placeholder="e.g. Grocery, Travel" autocomplete="off"></div>
+      <button class="btn btn-p btn-w" onclick="addPType('personal')">Add Type</button>
+    </div>
+  </div>
+
+  <div style="height:80px"></div>
+</div>
+</div>
+
+<!-- ══ PERSONAL ══ -->
+<div class="view" id="v-personal">
+<div class="wrap">
+  <div id="pers-safe-card"></div>
+  <div class="sec">
+    <span>Personal Expenses</span>
+    <button class="btn btn-p" style="padding:7px 13px;font-size:13px;min-height:34px" onclick="openPExp()">+ Add</button>
+  </div>
+  <div id="pexp-list"></div>
+  <div style="height:80px"></div>
+</div>
+</div>
+
+<!-- ══ REPORT ══ -->
+<div class="view" id="v-report">
+<div class="wrap">
+  <div class="sec" style="margin-top:4px">Report Generator</div>
+  <div class="card">
+    <div class="fg"><label class="flbl">Scope</label>
+      <select id="rscope">
+        <option value="all">All — Full Overview</option>
+        <option value="safes">Safes Summary</option>
+        <option value="re">Real Estate — Full Detail</option>
+        <option value="re_proj">Real Estate — By Project</option>
+        <option value="eng">All Engineering Accounts</option>
+        <option value="con">All Contracting Accounts</option>
+        <option value="personal">Personal Safe Detail</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:13px">
+      <div class="fg" style="margin-bottom:0"><label class="flbl">From</label><input type="date" id="rf"></div>
+      <div class="fg" style="margin-bottom:0"><label class="flbl">To</label><input type="date" id="rt"></div>
+    </div>
+    <button class="btn btn-p btn-w" onclick="genReport()">Generate Report</button>
+  </div>
+  <div id="rep-placeholder" class="card" style="text-align:center;color:var(--txt3);font-family:var(--mono);font-size:12px">
+    Tap Generate Report to preview
+  </div>
+  <div style="height:80px"></div>
+</div>
+</div>
+
+<!-- ══ SETTINGS ══ -->
+<div class="view" id="v-settings">
+<div class="wrap">
+  <div class="sec" style="margin-top:4px">Cloud Sync</div>
+  <div class="card">
+    <div style="font-size:14px;font-weight:600;margin-bottom:4px">Firebase Realtime Sync</div>
+    <div style="font-size:12px;color:var(--txt3);font-family:var(--mono);margin-bottom:10px">All data syncs automatically. Use Force Sync to push immediately.</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:13px">
+      <div id="fb-dot" style="width:8px;height:8px;border-radius:50%;background:var(--txt3);flex-shrink:0;transition:background .4s"></div>
+      <div id="fb-status" style="font-size:11px;font-family:var(--mono);color:var(--txt3)">Checking...</div>
+    </div>
+    <button class="btn btn-p btn-w" id="sync-btn" onclick="forceSync()">Force Sync Now</button>
+  </div>
+
+  <div class="sec">Backup & Restore</div>
+  <div class="card" style="margin-bottom:10px">
+    <div style="font-size:14px;font-weight:600;margin-bottom:4px">Export Data</div>
+    <div style="font-size:12px;color:var(--txt3);font-family:var(--mono);margin-bottom:12px">Download all data as a JSON backup file.</div>
+    <button class="btn btn-p btn-w" onclick="exportData()">Download Backup</button>
+  </div>
+  <div class="card">
+    <div style="font-size:14px;font-weight:600;margin-bottom:4px">Import Data</div>
+    <div style="font-size:12px;color:var(--txt3);font-family:var(--mono);margin-bottom:12px">Restore from backup. <strong style="color:var(--red)">Overwrites all current data.</strong></div>
+    <label class="btn btn-g btn-w" style="cursor:pointer">
+      Choose Backup File
+      <input type="file" id="imp-file" accept=".json" style="display:none" onchange="importData(this)">
+    </label>
+  </div>
+
+  <div style="height:80px"></div>
+</div>
+</div>
+
+</div><!-- end scroll -->
+
+<!-- BOTTOM NAV -->
+<nav class="bnav">
+  <button class="ni on" id="nav-home"     onclick="nav('home',this)"><span class="ni-ic">🏠</span>Dashboard</button>
+  <button class="ni"    id="nav-accounts" onclick="nav('accounts',this)"><span class="ni-ic">📂</span>Accounts</button>
+  <button class="ni"    id="nav-database" onclick="nav('database',this)"><span class="ni-ic">🗄</span>Database</button>
+  <button class="ni"    id="nav-personal" onclick="nav('personal',this)"><span class="ni-ic">💸</span>Personal</button>
+  <button class="ni"    id="nav-report"   onclick="nav('report',this)"><span class="ni-ic">📊</span>Report</button>
+  <button class="ni"    id="nav-settings" onclick="nav('settings',this)"><span class="ni-ic">⚙️</span>Settings</button>
+</nav>
+
+<button class="fab" onclick="openTx()">+</button>
+<div id="toast"></div>
+
+<!-- ADD TRANSACTION SHEET -->
+<div class="sov" id="sov-tx" onclick="closeSheet('tx')"></div>
+<div class="sheet" id="sht-tx">
+  <div class="shandle"></div>
+  <div class="shdr"><div class="shtit">Add Entry</div><div class="shsub" id="tx-sub">// new transaction</div></div>
+  <div class="shbdy">
+    <div class="ttog">
+      <button class="tbtn inc on" id="tbtn-i" onclick="setTxType('income')">▲ Income</button>
+      <button class="tbtn pay"    id="tbtn-p" onclick="setTxType('payment')">▼ Payment</button>
+    </div>
+    <div class="fg"><label class="flbl">Account</label><select id="tx-acc" onchange="onAccChange()"></select></div>
+    <div class="fg" id="fx-proj" style="display:none"><label class="flbl">RE Project</label><select id="tx-proj"></select></div>
+    <div class="fg" id="fx-ptype" style="display:none"><label class="flbl">Payment Type</label><select id="tx-ptype"></select></div>
+    <div class="fg" id="fx-recv" style="display:none"><label class="flbl">Receiver / Supplier</label><select id="tx-recv"></select></div>
+    <div class="fg" id="fx-relink" style="display:none">
+      <label class="flbl">Link to RE Project (optional)</label>
+      <select id="tx-relink" onchange="onRelinkChange()"><option value="">— Not linked —</option></select>
+      <div class="re-link-note" id="relink-note">This will auto-create a payment on the RE account.</div>
+    </div>
+    <div id="fx-safe" style="display:none">
+      <div class="safe-tog-wrap">
+        <div class="safe-tog-txt">
+          <div class="safe-tog-ttl">To Personal Safe</div>
+          <div class="safe-tog-sub">This amount stays in your personal safe</div>
+        </div>
+        <label class="tog-track">
+          <input type="checkbox" id="tx-tosafe" onchange="onToSafeChange()">
+          <div class="tog-bg"></div>
+          <div class="tog-knob"></div>
+        </label>
+      </div>
+    </div>
+    <div class="fg"><label class="flbl">Amount (USD)</label><input type="number" id="tx-amt" placeholder="0.00" min="0" step="0.01" inputmode="decimal"></div>
+    <div class="fg"><label class="flbl">Description</label><input type="text" id="tx-desc" placeholder="e.g. Invoice #12" autocomplete="off"></div>
+    <div class="fg"><label class="flbl">Date</label><input type="date" id="tx-date"></div>
+    <div class="fg"><label class="flbl">Logged by (optional)</label><input type="text" id="tx-user" placeholder="Your name" autocomplete="off"></div>
+    <div style="display:flex;gap:8px;padding-bottom:4px">
+      <button class="btn btn-g" style="flex:1;justify-content:center" onclick="closeSheet('tx')">Cancel</button>
+      <button class="btn btn-p" style="flex:2;justify-content:center" onclick="saveTx()">Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<!-- PERSONAL EXPENSE SHEET -->
+<div class="sov" id="sov-pe" onclick="closeSheet('pe')"></div>
+<div class="sheet" id="sht-pe">
+  <div class="shandle"></div>
+  <div class="shdr"><div class="shtit">Personal Expense</div><div class="shsub">// paid from Personal Safe</div></div>
+  <div class="shbdy">
+    <div class="fg"><label class="flbl">Amount (USD)</label><input type="number" id="pe-amt" placeholder="0.00" min="0" step="0.01" inputmode="decimal"></div>
+    <div class="fg"><label class="flbl">Description</label><input type="text" id="pe-desc" placeholder="e.g. Grocery, Restaurant" autocomplete="off"></div>
+    <div class="fg"><label class="flbl">Payment Type (optional)</label><select id="pe-ptype"><option value="">— Select type —</option></select></div>
+    <div class="fg"><label class="flbl">Receiver (optional)</label><select id="pe-recv"><option value="">— Select receiver —</option></select></div>
+    <div class="fg"><label class="flbl">Date</label><input type="date" id="pe-date"></div>
+    <div class="fg"><label class="flbl">Logged by (optional)</label><input type="text" id="pe-user" placeholder="Your name" autocomplete="off"></div>
+    <div style="display:flex;gap:8px;padding-bottom:4px">
+      <button class="btn btn-g" style="flex:1;justify-content:center" onclick="closeSheet('pe')">Cancel</button>
+      <button class="btn btn-p" style="flex:2;justify-content:center" onclick="savePExp()">Save Expense</button>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT SHEET -->
+<div class="sov" id="sov-rep" onclick="closeSheet('rep')"></div>
+<div class="sheet" id="sht-rep">
+  <div class="shandle"></div>
+  <div class="shdr"><div class="shtit">Report</div><div class="shsub" id="rep-lbl">// preview</div></div>
+  <div class="shbdy">
+    <div class="repre" id="rep-out">—</div>
+    <div style="display:flex;gap:8px;padding-bottom:4px">
+      <button class="btn btn-g" style="flex:1;justify-content:center" onclick="copyRep()">Copy</button>
+      <button class="btn btn-i" style="flex:1;justify-content:center" onclick="waRep()">WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════
+   DATA MODEL
+════════════════════════════════════════ */
+function defaultDB() {
+  return {
+    reOpeningBalance: 0,
+    personalSafeOpening: 0,
+    accounts: [{ id: 'acc_re', name: 'Real Estate Portfolio', type: 're', client: '', ts: Date.now() }],
+    projects: [],
+    transactions: [],
+    locations: [],
+    payTypes: { re: [], eng: [], con: [], personal: [] },
+    receivers: [],
+    cities: [],
+    _v: 1
+  };
+}
+
+function fixDB(d) {
+  if (!d) d = {};
+  if (!d.reOpeningBalance)    d.reOpeningBalance    = 0;
+  if (!d.personalSafeOpening) d.personalSafeOpening = 0;
+  if (!d.accounts)  d.accounts  = [{ id:'acc_re', name:'Real Estate Portfolio', type:'re', client:'', ts:Date.now() }];
+  if (!d.projects)  d.projects  = [];
+  if (!d.transactions) d.transactions = [];
+  if (!d.locations) d.locations = [];
+  if (!d.receivers) d.receivers = [];
+  if (!d.cities)    d.cities    = [];
+  if (!d.payTypes)  d.payTypes  = { re:[], eng:[], con:[], personal:[] };
+  if (!d.payTypes.re)       d.payTypes.re       = [];
+  if (!d.payTypes.eng)      d.payTypes.eng      = [];
+  if (!d.payTypes.con)      d.payTypes.con      = [];
+  if (!d.payTypes.personal) d.payTypes.personal = [];
+  if (!d.accounts.find(a => a.type === 're'))
+    d.accounts.unshift({ id:'acc_re', name:'Real Estate Portfolio', type:'re', client:'', ts:Date.now() });
+  return d;
+}
+
+/* Single global DB object — always window.DB */
+window.DB = defaultDB();
+
+/* ════════════════════════════════════════
+   PERSISTENCE
+════════════════════════════════════════ */
+const LS = 'vault_v2';
+
+function lsSave(d) {
+  try { localStorage.setItem(LS, JSON.stringify(d)); } catch(e) {}
+}
+function lsLoad() {
+  try {
+    const r = localStorage.getItem(LS);
+    if (r) { const d = JSON.parse(r); if (d && (d.transactions || d.accounts)) return d; }
+  } catch(e) {}
+  return null;
+}
+
+/* ── save() — called after every mutation ── */
+function save() {
+  window.DB._ts = Date.now();
+  lsSave(window.DB);
+  syncDot('pending');
+  if (window._fbReady && window._fbSave) {
+    window._fbSave(window.DB)
+      .then(() => syncDot('ok'))
+      .catch(e => { console.error('FB save error:', e); syncDot('err'); });
+  }
+}
+
+/* ════════════════════════════════════════
+   FIREBASE → APP BRIDGE
+   applyCloud is called by the module-script
+   listener AND by DOMContentLoaded
+════════════════════════════════════════ */
+function applyCloud(cloud) {
+  if (!cloud) return;
+  // Use cloud data if it's newer than what we have
+  const cloudTs  = cloud._ts  || 0;
+  const localTs  = window.DB._ts || 0;
+  if (cloudTs <= localTs) return; // we're already newer
+  window.DB = fixDB(cloud);
+  lsSave(window.DB);
+  refreshAll();
+  syncDot('ok');
+}
+
+/* ════════════════════════════════════════
+   BOOT SEQUENCE
+════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', function() {
+  // 1. Load localStorage instantly (no blank screen)
+  const local = lsLoad();
+  if (local) window.DB = fixDB(local);
+
+  // 2. If Firebase already delivered a snapshot, pick best version
+  if (window._cloudData !== undefined) {
+    applyCloud(window._cloudData);
+  }
+
+  // 3. Render
+  refreshAll();
+  window._appBooted = true;
+
+  // 4. Hide loader
+  hideLoader();
+});
+
+function hideLoader() {
+  const el = document.getElementById('loader');
+  if (el) { el.classList.add('out'); setTimeout(() => el.remove(), 500); }
+}
+
+/* ════════════════════════════════════════
+   REFRESH ALL VIEWS
+════════════════════════════════════════ */
+function refreshAll() {
+  renderSafes();
+  renderSummary();
+  renderAccList();
+  fillDropdowns();
+}
+
+/* ════════════════════════════════════════
+   SYNC DOT
+════════════════════════════════════════ */
+let _sdTimer;
+function syncDot(state) {
+  const el = document.getElementById('sync-dot');
+  if (!el) return;
+  el.className = '';
+  if (state === 'ok')      { el.classList.add('ok');      clearTimeout(_sdTimer); _sdTimer = setTimeout(() => syncDot('idle'), 2500); }
+  else if (state === 'err')     { el.classList.add('err');     }
+  else if (state === 'pending') { el.classList.add('pending'); }
+}
+
+/* ════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════ */
+const uid = () => '_' + Math.random().toString(36).slice(2,8) + Date.now().toString(36);
+const esc = s => s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : '';
+function fmt(n) {
+  const abs = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+  return (n < 0 ? '-' : '') + '$' + abs;
+}
+function fmtD(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + (iso.length === 10 ? 'T00:00:00' : ''));
+  return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+}
+const today = () => new Date().toISOString().split('T')[0];
+const reAcc = () => window.DB.accounts.find(a => a.type === 're');
+const accBal = id => window.DB.transactions.filter(t => t.aid === id).reduce((s,t) => s + (t.type==='income' ? t.amt : -t.amt), 0);
+
+const TYPE_ICON = { re:'🏗', eng:'📐', con:'🔩' };
+const TYPE_NAME = { re:'Real Estate', eng:'Engineering', con:'Contracting' };
+
+/* ════════════════════════════════════════
+   CALCULATIONS
+════════════════════════════════════════ */
+function calcRE() {
+  const ra = reAcc();
+  const base = window.DB.reOpeningBalance || 0;
+  if (!ra) return { open:base, inc:0, projPay:0, safe:base };
+  const inc     = window.DB.transactions.filter(t => t.aid===ra.id && t.type==='income').reduce((s,t) => s+t.amt, 0);
+  const projPay = window.DB.transactions.filter(t => t.aid===ra.id && t.type==='payment').reduce((s,t) => s+t.amt, 0);
+  return { open:base, inc, projPay, safe: base + inc - projPay };
+}
+
+function calcPersonal() {
+  const ids = window.DB.accounts.filter(a => a.type==='eng' || a.type==='con').map(a => a.id);
+  const tx  = window.DB.transactions;
+  const income      = tx.filter(t => ids.includes(t.aid) && t.type==='income').reduce((s,t) => s+t.amt, 0);
+  const toSafe      = tx.filter(t => ids.includes(t.aid) && t.pTxType==='to-safe').reduce((s,t) => s+t.amt, 0);
+  const fromSafe    = tx.filter(t => ids.includes(t.aid) && t.pTxType==='from-safe').reduce((s,t) => s+t.amt, 0);
+  const payments    = tx.filter(t => ids.includes(t.aid) && t.type==='payment' && !t.pTxType).reduce((s,t) => s+t.amt, 0);
+  const safeExpenses= tx.filter(t => t.aid==='_personal'  && t.type==='payment').reduce((s,t) => s+t.amt, 0);
+  const opening     = window.DB.personalSafeOpening || 0;
+  return {
+    income, toSafe, fromSafe, payments, safeExpenses,
+    pocket: income + fromSafe - toSafe - payments,
+    safe:   opening + toSafe - fromSafe - safeExpenses,
+    opening
+  };
+}
+
+/* ════════════════════════════════════════
+   RENDER — SAFES
+════════════════════════════════════════ */
+function renderSafes() {
+  const re = calcRE();
+  const pc = calcPersonal();
+  document.getElementById('safe-cards').innerHTML =
+    safeCard('RE Safe', re.safe, [
+      ['Income', '+'+fmt(re.inc), 'ca'],
+      ['Payments', '-'+fmt(re.projPay), 'cr'],
+      re.open ? ['Opening', '+'+fmt(re.open), 'cg'] : null
+    ]) +
+    safeCard('Pocket', pc.pocket, [
+      ['Income', '+'+fmt(pc.income), 'ca'],
+      ['Payments', '-'+fmt(pc.payments), 'cr'],
+      ['In safe', fmt(pc.safe), 'cp']
+    ]);
+}
+function safeCard(label, amount, rows) {
+  const cls = amount >= 0 ? 'pos' : 'neg';
+  const rowsHtml = rows.filter(Boolean).map(([k,v,c]) =>
+    '<div class="safe-row"><span>' + k + '</span><span class="' + c + '">' + v + '</span></div>'
+  ).join('');
+  return '<div class="safe-card"><div class="safe-lbl">' + label + '</div>' +
+    '<div class="safe-amt ' + cls + '">' + fmt(amount) + '</div>' +
+    '<div class="safe-rows">' + rowsHtml + '</div></div>';
+}
+
+/* ════════════════════════════════════════
+   RENDER — SUMMARY BLOCKS
+════════════════════════════════════════ */
+function renderSummary() {
+  const re = calcRE();
+  const pc = calcPersonal();
+  const ra = reAcc();
+  const engAccs = window.DB.accounts.filter(a => a.type==='eng');
+  const conAccs = window.DB.accounts.filter(a => a.type==='con');
+  let html = '';
+
+  // RE block
+  const reProjRows = window.DB.projects.map(p => {
+    const paid = window.DB.transactions.filter(t => t.aid===(ra?ra.id:'') && t.type==='payment' && t.projId===p.id).reduce((s,t) => s+t.amt, 0);
+    return paid ? '<div class="sum-row"><span class="sum-row-n">📌 ' + esc(p.name) + '</span><span class="sum-row-v cr">-' + fmt(paid) + '</span></div>' : '';
+  }).join('');
+
+  html += sumBlock('RE Safe', fmt(re.safe), re.safe >= 0 ? 'ca' : 'cr', [
+    ['Opening', '+'+fmt(re.open), 'cg'],
+    ['Income', '+'+fmt(re.inc), 'ca'],
+    ['Project Payments', '-'+fmt(re.projPay), 'cr'],
+  ], fmt(re.safe), re.safe >= 0, reProjRows);
+
+  // Eng
+  if (engAccs.length) {
+    const rows = engAccs.map(a => {
+      const inc = window.DB.transactions.filter(t => t.aid===a.id && t.type==='income').reduce((s,t) => s+t.amt, 0);
+      return ['📐 ' + esc(a.name), '+'+fmt(inc), 'ca'];
+    });
+    const total = engAccs.reduce((s,a) => s + accBal(a.id), 0);
+    html += sumBlock('Engineering', fmt(total), total >= 0 ? 'cb' : 'cr', rows, null, null, '');
+  }
+
+  // Con
+  if (conAccs.length) {
+    const rows = conAccs.map(a => {
+      const inc = window.DB.transactions.filter(t => t.aid===a.id && t.type==='income').reduce((s,t) => s+t.amt, 0);
+      return ['🔩 ' + esc(a.name), '+'+fmt(inc), 'ca'];
+    });
+    const total = conAccs.reduce((s,a) => s + accBal(a.id), 0);
+    html += sumBlock('Contracting', fmt(total), total >= 0 ? 'ct' : 'cr', rows, null, null, '');
+  }
+
+  // Pocket
+  html += sumBlock('Pocket', fmt(pc.pocket), pc.pocket >= 0 ? 'ca' : 'cr', [
+    ['Total income', '+'+fmt(pc.income), 'ca'],
+    ['Received from safe', '+'+fmt(pc.fromSafe), 'ca'],
+    ['Transferred to safe', '-'+fmt(pc.toSafe), 'cr'],
+    ['Payments', '-'+fmt(pc.payments), 'cr'],
+  ], fmt(pc.pocket), pc.pocket >= 0, '');
+
+  // Personal Safe
+  html += sumBlock('Personal Safe', fmt(pc.safe), pc.safe >= 0 ? 'cp' : 'cr', [
+    ['Opening', '+'+fmt(pc.opening), 'cg'],
+    ['Received from pocket', '+'+fmt(pc.toSafe), 'ca'],
+    ['Withdrawn to pocket', '-'+fmt(pc.fromSafe), 'cr'],
+    ['Personal expenses', '-'+fmt(pc.safeExpenses), 'cr'],
+  ], fmt(pc.safe), pc.safe >= 0, '');
+
+  document.getElementById('summary-blocks').innerHTML = html;
+}
+
+function sumBlock(title, headerVal, headerCls, rows, totalVal, totalPos, extra) {
+  const rowsHtml = rows.map(([k,v,c]) =>
+    '<div class="sum-row"><span class="sum-row-n">' + k + '</span><span class="sum-row-v ' + c + '">' + v + '</span></div>'
+  ).join('');
+  const totalHtml = totalVal !== null && totalVal !== undefined
+    ? '<div class="sum-div"></div><div class="sum-row sum-total-row"><span class="sum-row-n">Balance</span><span class="sum-row-v ' + (totalPos ? 'ca' : 'cr') + '" style="font-size:14px">' + totalVal + '</span></div>'
+    : '';
+  return '<div class="sumbox"><div class="sumbox-hdr"><span class="sumbox-title">' + title + '</span><span class="sumbox-val ' + headerCls + '">' + headerVal + '</span></div><div class="sum-rows">' + rowsHtml + totalHtml + extra + '</div></div>';
+}
+
+/* ════════════════════════════════════════
+   RENDER — ACCOUNT LIST
+════════════════════════════════════════ */
+let accFilter = 'all';
+function filterAcc(f, el) {
+  accFilter = f;
+  document.querySelectorAll('.pills .pill').forEach(p => p.classList.remove('on'));
+  el.classList.add('on');
+  renderAccList();
+}
+function renderAccList() {
+  let accs = window.DB.accounts;
+  if (accFilter !== 'all') accs = accs.filter(a => a.type === accFilter);
+  const el = document.getElementById('acc-list');
+  if (!accs.length) { el.innerHTML = '<div class="empty"><div class="empty-ic">📂</div>No accounts.</div>'; return; }
+  el.innerHTML = accs.map(a => a.type === 're' ? renderRECard(a) : renderStdCard(a)).join('');
+}
+
+function renderRECard(a) {
+  const re = calcRE();
+  const projRows = window.DB.projects.map(p => {
+    const paid = window.DB.transactions.filter(t => t.aid===a.id && t.type==='payment' && t.projId===p.id).reduce((s,t) => s+t.amt, 0);
+    return paid ? '<div class="proj-row"><div class="proj-dot"></div><div class="proj-nm">' + esc(p.name) + '</div><div class="proj-amt">-' + fmt(paid) + '</div></div>' : '';
+  }).join('');
+
+  const incTxs = window.DB.transactions.filter(t => t.aid===a.id && t.type==='income').sort((a,b) => b.date.localeCompare(a.date));
+  const payTxs = window.DB.transactions.filter(t => t.aid===a.id && t.type==='payment').sort((a,b) => b.date.localeCompare(a.date));
+
+  const incHtml = incTxs.length ? incTxs.map(t => txRow(t, 're')).join('') : '<div class="notx">No income yet</div>';
+  const payHtml = payTxs.length ? payTxs.map(t => txRow(t, 're')).join('') : '<div class="notx">No payments yet</div>';
+
+  return '<div class="acard re" id="ac-' + a.id + '">' +
+    '<div class="atop" onclick="toggleAcc(\'' + a.id + '\')">' +
+      '<div class="aico">🏗</div>' +
+      '<div class="ainf"><div class="aname">' + esc(a.name) + '</div><div class="asub">Real Estate · RE Safe</div></div>' +
+      '<div class="argt"><div class="argt-l">RE Safe</div><div class="argt-v ' + (re.safe>=0?'ca':'cr') + '">' + fmt(re.safe) + '</div></div>' +
+      '<div class="chv">▾</div>' +
+    '</div>' +
+    '<div class="abody" id="ab-' + a.id + '"><div class="abody-in">' +
+      '<div class="qstats">' +
+        '<div class="qstat"><div class="qstat-l">Opening</div><div class="qstat-v cg">' + fmt(re.open) + '</div></div>' +
+        '<div class="qstat"><div class="qstat-l">Income</div><div class="qstat-v ca">+' + fmt(re.inc) + '</div></div>' +
+        '<div class="qstat"><div class="qstat-l">RE Safe</div><div class="qstat-v ' + (re.safe>=0?'ca':'cr') + '">' + fmt(re.safe) + '</div></div>' +
+      '</div>' +
+      (projRows ? '<div style="margin-bottom:12px">' + projRows + '</div>' : '') +
+      '<div class="stabs">' +
+        '<button class="stab on" id="stab-i-' + a.id + '" onclick="switchStab(\'' + a.id + '\',\'i\')">▲ Income</button>' +
+        '<button class="stab"    id="stab-p-' + a.id + '" onclick="switchStab(\'' + a.id + '\',\'p\')">▼ Payments</button>' +
+      '</div>' +
+      '<div id="sub-i-' + a.id + '"><div class="txlist">' + incHtml + '</div></div>' +
+      '<div id="sub-p-' + a.id + '" style="display:none"><div class="txlist">' + payHtml + '</div></div>' +
+      '<div class="aacts">' +
+        '<button class="btn btn-i" onclick="openTxFor(\'' + a.id + '\',\'income\')">▲ Income</button>' +
+        '<button class="btn btn-pu" onclick="openTxFor(\'' + a.id + '\',\'payment\')">▼ Project Payment</button>' +
+      '</div>' +
+    '</div></div></div>';
+}
+
+function renderStdCard(a) {
+  const inc = window.DB.transactions.filter(t => t.aid===a.id && t.type==='income').reduce((s,t) => s+t.amt, 0);
+  const txs = window.DB.transactions.filter(t => t.aid===a.id).sort((a,b) => b.date.localeCompare(a.date));
+  const txHtml = txs.length ? txs.map(t => txRow(t, a.type)).join('') : '<div class="notx">No transactions yet</div>';
+  const borderCls = a.type === 'eng' ? 'eng' : 'con';
+
+  return '<div class="acard ' + borderCls + '" id="ac-' + a.id + '">' +
+    '<div class="atop" onclick="toggleAcc(\'' + a.id + '\')">' +
+      '<div class="aico">' + TYPE_ICON[a.type] + '</div>' +
+      '<div class="ainf"><div class="aname">' + esc(a.name) + '</div><div class="asub">' + TYPE_NAME[a.type] + (a.client ? ' · ' + esc(a.client) : '') + '</div></div>' +
+      '<div class="argt"><div class="argt-l">Income</div><div class="argt-v ca">' + fmt(inc) + '</div></div>' +
+      '<div class="chv">▾</div>' +
+    '</div>' +
+    '<div class="abody" id="ab-' + a.id + '"><div class="abody-in">' +
+      '<div class="txlist">' + txHtml + '</div>' +
+      '<div class="aacts">' +
+        '<button class="btn btn-i"  onclick="openTxFor(\'' + a.id + '\',\'income\')">▲ Income</button>' +
+        '<button class="btn btn-r"  onclick="openTxFor(\'' + a.id + '\',\'payment\')">▼ Payment</button>' +
+        '<button class="btn btn-go" onclick="openTxFor(\'' + a.id + '\',\'to-safe\')">To Safe</button>' +
+        '<button class="btn btn-pu" onclick="openTxFor(\'' + a.id + '\',\'from-safe\')">Safe → Pocket</button>' +
+      '</div>' +
+    '</div></div></div>';
+}
+
+function txRow(t, accType) {
+  const pt   = (window.DB.payTypes[accType] || []).find(p => p.id === t.ptId);
+  const proj = window.DB.projects.find(p => p.id === t.projId);
+  const recv = window.DB.receivers.find(r => r.id === t.receiverId);
+  const pTxLabels = { 'to-safe':'→ Safe', 'from-safe':'Safe→Pocket' };
+  const pTxLabel  = t.pTxType ? pTxLabels[t.pTxType] : null;
+  const rlProj = t.reLinkProjId ? window.DB.projects.find(p => p.id===t.reLinkProjId) : null;
+  const meta = [fmtD(t.date), pTxLabel, pt?esc(pt.name):null, recv?esc(recv.name):null, proj?esc(proj.name):null, rlProj?('🏗 '+esc(rlProj.name)):null, t.user?esc(t.user):null].filter(Boolean).join(' · ');
+  const isInc = t.type==='income' || t.pTxType==='from-safe';
+  const isSafe = t.pTxType==='to-safe';
+  const dotCls = isInc ? 'i' : isSafe ? 's' : 'p';
+  const amtCls = isInc ? 'i' : isSafe ? 's' : 'p';
+  const sign   = isInc ? '+' : '-';
+  return '<div class="txrow" id="tx-' + t.id + '">' +
+    '<div class="txdot ' + dotCls + '"></div>' +
+    '<div class="txinf"><div class="txdsc">' + (esc(t.desc)||'—') + '</div><div class="txmta">' + meta + '</div></div>' +
+    '<div class="txamt ' + amtCls + '">' + sign + fmt(t.amt) + '</div>' +
+    '<button class="txdel" onclick="delTx(\'' + t.id + '\')">×</button>' +
+    '</div>';
+}
+
+function toggleAcc(id) { document.getElementById('ac-' + id).classList.toggle('open'); }
+function switchStab(aid, tab) {
+  ['i','p'].forEach(t => {
+    document.getElementById('stab-' + t + '-' + aid).classList.toggle('on', t === tab);
+    document.getElementById('sub-' + t + '-' + aid).style.display = t === tab ? 'block' : 'none';
+  });
+}
+
+/* ════════════════════════════════════════
+   FILL DROPDOWNS
+════════════════════════════════════════ */
+function fillDropdowns() {
+  fillLocSels();
+  fillProjSel();
+  fillCitySel();
+  fillTxAccSel();
+  fillReLinkSel();
+}
+
+function locLabel(l) {
+  const city = window.DB.cities.find(c => c.id === l.cityId);
+  return l.lotNum + (city ? ' · ' + city.name : '');
+}
+function locOpts() {
+  return '<option value="">— Select location —</option>' +
+    window.DB.locations.map(l => '<option value="' + l.id + '">' + esc(locLabel(l)) + '</option>').join('');
+}
+function fillLocSels() {
+  const o = locOpts();
+  ['eng-loc','con-loc','proj-loc'].forEach(id => { const el = document.getElementById(id); if(el) el.innerHTML = o; });
+}
+function fillProjSel() {
+  const sel = document.getElementById('tx-proj');
+  if (!sel) return;
+  sel.innerHTML = window.DB.projects.length
+    ? window.DB.projects.map(p => '<option value="' + p.id + '">' + esc(p.name) + '</option>').join('')
+    : '<option value="">— No projects yet —</option>';
+}
+function fillCitySel() {
+  const sel = document.getElementById('loc-city'); if (!sel) return;
+  sel.innerHTML = '<option value="">— Select city —</option>' +
+    window.DB.cities.map(c => '<option value="' + c.id + '">' + esc(c.name) + '</option>').join('');
+}
+function fillTxAccSel() {
+  const sel = document.getElementById('tx-acc'); if (!sel) return;
+  sel.innerHTML = window.DB.accounts.map(a =>
+    '<option value="' + a.id + '">' + TYPE_ICON[a.type] + ' ' + esc(a.name) + '</option>'
+  ).join('');
+}
+function fillReLinkSel() {
+  const sel = document.getElementById('tx-relink'); if (!sel) return;
+  sel.innerHTML = '<option value="">— Not linked —</option>' +
+    window.DB.projects.map(p => '<option value="' + p.id + '">' + esc(p.name) + '</option>').join('');
+}
+function fillRecvSel(selId) {
+  const sel = document.getElementById(selId); if (!sel) return;
+  sel.innerHTML = '<option value="">— Select receiver (optional) —</option>' +
+    window.DB.receivers.map(r => '<option value="' + r.id + '">' + esc(r.name) + (r.phone?' · '+esc(r.phone):'') + '</option>').join('');
+}
+function fillPTypeSel(selId, type) {
+  const sel = document.getElementById(selId); if (!sel) return;
+  const list = window.DB.payTypes[type] || [];
+  sel.innerHTML = '<option value="">— Select type (optional) —</option>' +
+    list.map(p => '<option value="' + p.id + '">' + esc(p.name) + '</option>').join('');
+}
+
+/* ════════════════════════════════════════
+   TRANSACTION SHEET
+════════════════════════════════════════ */
+let _txType = 'income', _preAcc = null, _preSpecial = null;
+
+function openTx() {
+  _preAcc = null; _preSpecial = null;
+  setTxType('income');
+  fillTxAccSel(); fillProjSel(); fillReLinkSel();
+  clearTxFields();
+  document.getElementById('tx-sub').textContent = '// new transaction';
+  openSheet('tx');
+}
+function openTxFor(aid, tp) {
+  _preAcc = aid;
+  _preSpecial = (tp !== 'income' && tp !== 'payment') ? tp : null;
+  const uiType = tp === 'income' ? 'income' : 'payment';
+  setTxType(uiType);
+  fillTxAccSel(); fillProjSel(); fillReLinkSel();
+  clearTxFields();
+  document.getElementById('tx-acc').value = aid;
+  const labels = { 'to-safe':'// Pocket → Personal Safe', 'from-safe':'// Safe → Pocket' };
+  document.getElementById('tx-sub').textContent = labels[tp] || '// ' + (window.DB.accounts.find(a=>a.id===aid)||{}).name;
+  onAccChange();
+  openSheet('tx');
+}
+function clearTxFields() {
+  ['tx-amt','tx-desc','tx-user'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('tx-date').value = today();
+  const rs = document.getElementById('tx-recv'); if(rs) rs.value='';
+  const rl = document.getElementById('tx-relink'); if(rl) rl.value='';
+  const rn = document.getElementById('relink-note'); if(rn) rn.style.display='none';
+  const ts = document.getElementById('tx-tosafe'); if(ts) ts.checked=false;
+}
+function setTxType(t) {
+  _txType = t;
+  document.getElementById('tbtn-i').classList.toggle('on', t==='income');
+  document.getElementById('tbtn-p').classList.toggle('on', t==='payment');
+  onAccChange();
+}
+function onAccChange() {
+  const aid = document.getElementById('tx-acc').value;
+  const acc = window.DB.accounts.find(a => a.id === aid);
+  if (!acc) return;
+  const isRE  = acc.type === 're';
+  const isPay = _txType === 'payment';
+  const isEngCon = acc.type === 'eng' || acc.type === 'con';
+  const isSpecial = !!_preSpecial;
+
+  // RE project field
+  document.getElementById('fx-proj').style.display  = (isRE && isPay && !isSpecial) ? 'block' : 'none';
+  // Payment type
+  document.getElementById('fx-ptype').style.display = isPay ? 'block' : 'none';
+  if (isPay) fillPTypeSel('tx-ptype', acc.type);
+  // Receiver
+  document.getElementById('fx-recv').style.display  = isPay ? 'block' : 'none';
+  if (isPay) fillRecvSel('tx-recv');
+  // RE link (Eng/Con income only)
+  const showRL = !isPay && isEngCon && window.DB.projects.length > 0;
+  document.getElementById('fx-relink').style.display = showRL ? 'block' : 'none';
+  // To Safe toggle (Eng/Con payment, not special)
+  document.getElementById('fx-safe').style.display  = (isPay && isEngCon && !isSpecial) ? 'block' : 'none';
+}
+function onRelinkChange() {
+  const v = document.getElementById('tx-relink').value;
+  document.getElementById('relink-note').style.display = v ? 'block' : 'none';
+}
+function onToSafeChange() {} // UI handled by CSS
+
+function saveTx() {
+  const aid  = document.getElementById('tx-acc').value;
+  const amt  = parseFloat(document.getElementById('tx-amt').value);
+  const desc = document.getElementById('tx-desc').value.trim();
+  const date = document.getElementById('tx-date').value;
+  const user = document.getElementById('tx-user').value.trim();
+  const acc  = window.DB.accounts.find(a => a.id === aid);
+  if (!acc)      { toast('Select an account','er'); return; }
+  if (!amt||amt<=0){ toast('Enter a valid amount','er'); return; }
+  if (!date)     { toast('Pick a date','er'); return; }
+
+  const isRE  = acc.type === 're';
+  const isPay = _txType === 'payment';
+  const isEngCon = acc.type==='eng' || acc.type==='con';
+
+  let projId = null, ptId = null, pTxType = _preSpecial || null;
+  const receiverId = document.getElementById('tx-recv') ? document.getElementById('tx-recv').value||null : null;
+
+  if (isRE && isPay && !pTxType) {
+    projId = document.getElementById('tx-proj').value || null;
+    if (!projId && window.DB.projects.length) { toast('Select a project','er'); return; }
+  }
+  if (isPay) ptId = document.getElementById('tx-ptype').value || null;
+
+  // To-safe special type
+  if (isPay && isEngCon && !pTxType) {
+    const ts = document.getElementById('tx-tosafe');
+    if (ts && ts.checked) pTxType = 'to-safe';
+  }
+
+  const reLinkProjId = (!isPay && isEngCon && document.getElementById('tx-relink'))
+    ? document.getElementById('tx-relink').value || null : null;
+
+  // Push main transaction
+  window.DB.transactions.push({ id:uid(), aid, type:_txType, amt, desc, date, user, projId, ptId, pTxType, receiverId, reLinkProjId, ts:Date.now() });
+
+  // Auto-create RE payment if linked
+  if (reLinkProjId) {
+    const ra = reAcc();
+    if (ra) {
+      const autoDesc = (acc.type==='eng'?'Engineering':'Contracting') + ' Payment' + (desc?' — '+desc:'');
+      window.DB.transactions.push({ id:uid(), aid:ra.id, type:'payment', amt, desc:autoDesc, date, user, projId:reLinkProjId, ptId:null, pTxType:null, receiverId:null, autoFrom:aid, ts:Date.now() });
+    }
+  }
+
+  save(); closeSheet('tx');
+  refreshAll();
+  toast(reLinkProjId ? 'Income added + RE updated ✓' : (_txType==='income' ? 'Income added ✓' : 'Payment added ✓'));
+  _preSpecial = null;
+}
+
+function delTx(id) {
+  const el = document.getElementById('tx-' + id);
+  if (el) el.classList.add('flash');
+  setTimeout(() => {
+    if (!confirm('Delete this transaction?')) { if(el) el.classList.remove('flash'); return; }
+    const t = window.DB.transactions.find(x => x.id === id);
+    window.DB.transactions = window.DB.transactions.filter(x => x.id !== id);
+    if (t && t.reLinkProjId) {
+      window.DB.transactions = window.DB.transactions.filter(x => !(x.autoFrom===t.aid && x.projId===t.reLinkProjId && x.amt===t.amt && x.date===t.date));
+    }
+    save(); refreshAll(); toast('Deleted');
+  }, 150);
+}
+
+/* ════════════════════════════════════════
+   MANAGE ACCOUNTS
+════════════════════════════════════════ */
+function renderManage() {
+  ['eng','con'].forEach(type => {
+    const accs = window.DB.accounts.filter(a => a.type === type);
+    const el   = document.getElementById('ml-' + type);
+    if (!accs.length) { el.innerHTML = '<div class="empty"><div class="empty-ic">' + TYPE_ICON[type] + '</div>No accounts yet.</div>'; return; }
+    el.innerHTML = accs.map(a => {
+      const n = window.DB.transactions.filter(t => t.aid===a.id).length;
+      const loc = a.locId ? window.DB.locations.find(l => l.id===a.locId) : null;
+      const locLbl = loc ? locLabel(loc) : '';
+      return '<div class="mcard ' + type + '"><div class="minf">' +
+        '<div class="mnam">' + esc(a.name) + '</div>' +
+        (locLbl ? '<div class="mmta">📍 ' + esc(locLbl) + '</div>' : '') +
+        (a.client ? '<div class="mmta">' + esc(a.client) + '</div>' : '') +
+        '<span class="badge ' + type + '">' + TYPE_NAME[type] + '</span>' +
+        '<div class="mmta">' + n + ' tx · ' + fmt(accBal(a.id)) + '</div>' +
+        '</div><button class="btn btn-r" style="padding:8px 11px;font-size:13px" onclick="delAcc(\'' + a.id + '\')">Delete</button></div>';
+    }).join('');
+  });
+
+  const projEl = document.getElementById('ml-proj');
+  if (!window.DB.projects.length) {
+    projEl.innerHTML = '<div class="empty"><div class="empty-ic">🏗</div>No projects yet.</div>';
+  } else {
+    projEl.innerHTML = window.DB.projects.map(p => {
+      const pPay = window.DB.transactions.filter(t => t.type==='payment' && t.projId===p.id).reduce((s,t) => s+t.amt, 0);
+      const loc  = window.DB.locations.find(l => l.id===p.locId);
+      return '<div class="mcard proj"><div class="minf">' +
+        '<div class="mnam">' + esc(p.name) + '</div>' +
+        (loc ? '<div class="mmta">📍 ' + esc(locLabel(loc)) + '</div>' : '') +
+        '<span class="badge proj">RE Project</span>' +
+        '<div class="mmta">' + fmt(pPay) + ' paid</div>' +
+        '</div><button class="btn btn-r" style="padding:8px 11px;font-size:13px" onclick="delProject(\'' + p.id + '\')">Delete</button></div>';
+    }).join('');
+  }
+
+  fillLocSels();
+  showOpeningCurrent();
+}
+
+function addAcc(type) {
+  const locId  = document.getElementById(type+'-loc').value;
+  const client = document.getElementById(type+'-client').value.trim();
+  if (!locId) { toast('Select a location first','er'); return; }
+  const loc  = window.DB.locations.find(l => l.id===locId);
+  const name = locLabel(loc);
+  if (window.DB.accounts.find(a => a.type===type && a.name===name)) { toast('Account already exists','er'); return; }
+  window.DB.accounts.push({ id:uid(), name, type, client, locId, ts:Date.now() });
+  save(); renderManage(); fillTxAccSel(); toast('Account created ✓');
+  document.getElementById(type+'-loc').value='';
+  document.getElementById(type+'-client').value='';
+}
+function delAcc(id) {
+  const a = window.DB.accounts.find(x => x.id===id); if(!a) return;
+  const n = window.DB.transactions.filter(t => t.aid===id).length;
+  if (!confirm('Delete "' + a.name + '"' + (n?' and its '+n+' transactions':'') + '?')) return;
+  window.DB.accounts = window.DB.accounts.filter(x => x.id!==id);
+  window.DB.transactions = window.DB.transactions.filter(t => t.aid!==id);
+  save(); renderManage(); fillTxAccSel(); refreshAll(); toast('Deleted');
+}
+function addProject() {
+  const locId = document.getElementById('proj-loc').value;
+  const notes = document.getElementById('proj-notes').value.trim();
+  if (!locId) { toast('Select a location','er'); return; }
+  const loc  = window.DB.locations.find(l => l.id===locId);
+  const name = locLabel(loc);
+  if (window.DB.projects.find(p => p.name===name)) { toast('Project already exists','er'); return; }
+  window.DB.projects.push({ id:uid(), name, locId, notes, ts:Date.now() });
+  save(); renderManage(); fillProjSel(); toast('Project created ✓');
+  document.getElementById('proj-loc').value='';
+  document.getElementById('proj-notes').value='';
+}
+function delProject(id) {
+  const p = window.DB.projects.find(x => x.id===id); if(!p) return;
+  if (!confirm('Delete "' + p.name + '"?')) return;
+  window.DB.projects = window.DB.projects.filter(x => x.id!==id);
+  window.DB.transactions.filter(t => t.projId===id).forEach(t => t.projId=null);
+  save(); renderManage(); fillProjSel(); toast('Deleted');
+}
+function setOpening(which) {
+  const inputId = which==='re' ? 're-opening' : 'ps-opening';
+  const val = parseFloat(document.getElementById(inputId).value);
+  if (isNaN(val)||val<0) { toast('Enter a valid amount','er'); return; }
+  if (which==='re') window.DB.reOpeningBalance   = val;
+  else              window.DB.personalSafeOpening = val;
+  save(); document.getElementById(inputId).value='';
+  showOpeningCurrent(); refreshAll(); toast('Opening balance set ✓');
+}
+function showOpeningCurrent() {
+  const er = document.getElementById('re-opening-cur'); if(er) er.textContent='Current: '+fmt(window.DB.reOpeningBalance||0);
+  const ep = document.getElementById('ps-opening-cur'); if(ep) ep.textContent='Current: '+fmt(window.DB.personalSafeOpening||0);
+}
+
+/* ════════════════════════════════════════
+   DATABASE
+════════════════════════════════════════ */
+function switchDB(panel, el) {
+  document.querySelectorAll('.dbtab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.dbpanel').forEach(p => p.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('db-' + panel).classList.add('on');
+}
+function renderDatabase() {
+  renderCityList(); renderLocList(); renderRecList();
+  ['re','eng','con','personal'].forEach(renderPTypeList);
+  fillCitySel();
+}
+
+// Cities
+function renderCityList() {
+  const el = document.getElementById('city-list'); if(!el) return;
+  if (!window.DB.cities.length) { el.innerHTML='<div class="empty"><div class="empty-ic">🏙</div>No cities yet.</div>'; return; }
+  el.innerHTML = window.DB.cities.map(c =>
+    '<div class="mcard loc"><div class="minf"><div class="mnam">🏙 ' + esc(c.name) + '</div></div>' +
+    '<button class="btn btn-r" style="padding:8px 11px;font-size:13px" onclick="delCity(\'' + c.id + '\')">Delete</button></div>'
+  ).join('');
+}
+function addCity() {
+  const name = document.getElementById('city-name').value.trim();
+  if (!name) { toast('Enter a city name','er'); return; }
+  if (window.DB.cities.find(c => c.name.toLowerCase()===name.toLowerCase())) { toast('Already exists','er'); return; }
+  window.DB.cities.push({ id:uid(), name, ts:Date.now() });
+  save(); document.getElementById('city-name').value=''; renderCityList(); fillCitySel(); toast('City added ✓');
+}
+function delCity(id) {
+  if (!confirm('Delete this city?')) return;
+  window.DB.cities = window.DB.cities.filter(c => c.id!==id);
+  save(); renderCityList(); fillCitySel(); toast('Deleted');
+}
+
+// Locations
+function renderLocList() {
+  const el = document.getElementById('loc-list'); if(!el) return;
+  if (!window.DB.locations.length) { el.innerHTML='<div class="empty"><div class="empty-ic">📍</div>No locations yet.</div>'; return; }
+  el.innerHTML = window.DB.locations.map(l => {
+    const city = window.DB.cities.find(c => c.id===l.cityId);
+    return '<div class="mcard loc"><div class="minf"><div class="mnam">📍 ' + esc(locLabel(l)) + '</div>' +
+      (city?'<div class="mmta">🏙 '+esc(city.name)+'</div>':'') +
+      '</div><button class="btn btn-r" style="padding:8px 11px;font-size:13px" onclick="delLoc(\'' + l.id + '\')">Delete</button></div>';
+  }).join('');
+}
+function addLocation() {
+  const lot    = document.getElementById('loc-lot').value.trim();
+  const cityId = document.getElementById('loc-city').value;
+  if (!lot)    { toast('Enter a lot number','er'); return; }
+  if (!cityId) { toast('Select a city','er'); return; }
+  if (window.DB.locations.find(l => l.lotNum===lot && l.cityId===cityId)) { toast('Already exists','er'); return; }
+  const city = window.DB.cities.find(c => c.id===cityId);
+  window.DB.locations.push({ id:uid(), lotNum:lot, name:city?city.name:'', cityId, ts:Date.now() });
+  save(); document.getElementById('loc-lot').value=''; document.getElementById('loc-city').value='';
+  renderLocList(); fillLocSels(); fillCitySel(); toast('Location added ✓');
+}
+function delLoc(id) {
+  if (!confirm('Delete this location?')) return;
+  window.DB.locations = window.DB.locations.filter(l => l.id!==id);
+  save(); renderLocList(); fillLocSels(); toast('Deleted');
+}
+
+// Receivers
+function renderRecList() {
+  const el = document.getElementById('rec-list'); if(!el) return;
+  if (!window.DB.receivers.length) { el.innerHTML='<div class="empty"><div class="empty-ic">👤</div>No receivers yet.</div>'; return; }
+  el.innerHTML = window.DB.receivers.map(r =>
+    '<div class="mcard rec"><div class="minf">' +
+    '<div class="mnam">' + esc(r.name) + '</div>' +
+    (r.phone?'<div class="mmta">📞 '+esc(r.phone)+'</div>':'') +
+    (r.notes?'<div class="mmta">'+esc(r.notes)+'</div>':'') +
+    '</div><button class="btn btn-r" style="padding:8px 11px;font-size:13px" onclick="delRec(\'' + r.id + '\')">Delete</button></div>'
+  ).join('');
+}
+function addReceiver() {
+  const name  = document.getElementById('rec-name').value.trim();
+  const phone = document.getElementById('rec-phone').value.trim();
+  const notes = document.getElementById('rec-notes').value.trim();
+  if (!name) { toast('Enter a name','er'); return; }
+  if (window.DB.receivers.find(r => r.name.toLowerCase()===name.toLowerCase())) { toast('Already exists','er'); return; }
+  window.DB.receivers.push({ id:uid(), name, phone, notes, ts:Date.now() });
+  save(); document.getElementById('rec-name').value=''; document.getElementById('rec-phone').value=''; document.getElementById('rec-notes').value='';
+  renderRecList(); toast('Receiver added ✓');
+}
+function delRec(id) {
+  if (!confirm('Delete?')) return;
+  window.DB.receivers = window.DB.receivers.filter(r => r.id!==id);
+  save(); renderRecList(); toast('Deleted');
+}
+
+// Payment Types
+function renderPTypeList(type) {
+  const el   = document.getElementById('pt-list-' + type); if(!el) return;
+  const list = window.DB.payTypes[type] || [];
+  if (!list.length) { el.innerHTML='<div class="empty"><div class="empty-ic">💳</div>No types yet.</div>'; return; }
+  el.innerHTML = list.map(p =>
+    '<div class="mcard pt"><div class="minf"><div class="mnam">' + esc(p.name) + '</div></div>' +
+    '<button class="btn btn-r" style="padding:8px 11px;font-size:13px" onclick="delPType(\'' + type + '\',\'' + p.id + '\')">Delete</button></div>'
+  ).join('');
+}
+function addPType(type) {
+  const inp  = document.getElementById('pt-name-' + type);
+  const name = inp.value.trim();
+  if (!name) { toast('Enter a type name','er'); return; }
+  if (!window.DB.payTypes[type]) window.DB.payTypes[type] = [];
+  if (window.DB.payTypes[type].find(p => p.name.toLowerCase()===name.toLowerCase())) { toast('Already exists','er'); return; }
+  window.DB.payTypes[type].push({ id:uid(), name, ts:Date.now() });
+  save(); inp.value=''; renderPTypeList(type); toast('Type added ✓');
+}
+function delPType(type, id) {
+  if (!confirm('Delete?')) return;
+  window.DB.payTypes[type] = window.DB.payTypes[type].filter(p => p.id!==id);
+  save(); renderPTypeList(type); toast('Deleted');
+}
+
+/* ════════════════════════════════════════
+   PERSONAL VIEW
+════════════════════════════════════════ */
+function renderPersonal() {
+  const pc = calcPersonal();
+  document.getElementById('pers-safe-card').innerHTML =
+    '<div class="pers-card">' +
+      '<div style="font-size:9px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--txt3);font-family:var(--mono);margin-bottom:8px">Personal Safe</div>' +
+      '<div style="font-family:var(--mono);font-size:26px;font-weight:500;color:' + (pc.safe>=0?'var(--pur)':'var(--red)') + ';margin-bottom:10px">' + fmt(pc.safe) + '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:4px;border-top:1px solid var(--bdr);padding-top:10px">' +
+        '<div class="safe-row"><span>In safe (total)</span><span class="ca">+' + fmt(pc.opening+pc.toSafe) + '</span></div>' +
+        '<div class="safe-row"><span>Withdrawn to pocket</span><span class="cr">-' + fmt(pc.fromSafe) + '</span></div>' +
+        '<div class="safe-row"><span>Personal expenses</span><span class="cr">-' + fmt(pc.safeExpenses) + '</span></div>' +
+      '</div>' +
+    '</div>';
+
+  const txs = window.DB.transactions.filter(t => t.aid==='_personal' && t.type==='payment').sort((a,b) => b.date.localeCompare(a.date));
+  const el  = document.getElementById('pexp-list');
+  if (!txs.length) { el.innerHTML='<div class="empty"><div class="empty-ic">💸</div>No personal expenses yet.</div>'; return; }
+  el.innerHTML = '<div class="txlist">' + txs.map(t => {
+    const pt   = (window.DB.payTypes.personal||[]).find(p => p.id===t.ptId);
+    const recv = window.DB.receivers.find(r => r.id===t.receiverId);
+    const meta = [fmtD(t.date), pt?esc(pt.name):null, recv?esc(recv.name):null, t.user?esc(t.user):null].filter(Boolean).join(' · ');
+    return '<div class="txrow" id="tx-' + t.id + '">' +
+      '<div class="txdot p"></div>' +
+      '<div class="txinf"><div class="txdsc">' + (esc(t.desc)||'—') + '</div><div class="txmta">' + meta + '</div></div>' +
+      '<div class="txamt p">-' + fmt(t.amt) + '</div>' +
+      '<button class="txdel" onclick="delPExp(\'' + t.id + '\')">×</button>' +
+      '</div>';
+  }).join('') + '</div>';
+}
+function openPExp() {
+  fillPTypeSel('pe-ptype','personal'); fillRecvSel('pe-recv');
+  ['pe-amt','pe-desc','pe-user'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('pe-date').value = today();
+  openSheet('pe'); setTimeout(()=>document.getElementById('pe-amt').focus(),350);
+}
+function savePExp() {
+  const amt  = parseFloat(document.getElementById('pe-amt').value);
+  const desc = document.getElementById('pe-desc').value.trim();
+  const date = document.getElementById('pe-date').value;
+  const user = document.getElementById('pe-user').value.trim();
+  const ptId = document.getElementById('pe-ptype').value||null;
+  const receiverId = document.getElementById('pe-recv').value||null;
+  if (!amt||amt<=0) { toast('Enter a valid amount','er'); return; }
+  if (!date)        { toast('Pick a date','er'); return; }
+  window.DB.transactions.push({ id:uid(), aid:'_personal', type:'payment', amt, desc, date, user, ptId, receiverId, ts:Date.now() });
+  save(); closeSheet('pe'); renderPersonal(); refreshAll(); toast('Expense saved ✓');
+}
+function delPExp(id) {
+  const el = document.getElementById('tx-' + id); if(el) el.classList.add('flash');
+  setTimeout(() => {
+    if (!confirm('Delete this expense?')) { if(el) el.classList.remove('flash'); return; }
+    window.DB.transactions = window.DB.transactions.filter(t => t.id!==id);
+    save(); renderPersonal(); refreshAll(); toast('Deleted');
+  }, 150);
+}
+
+/* ════════════════════════════════════════
+   REPORT
+════════════════════════════════════════ */
+function initReportDates() {
+  if (document.getElementById('rf').value) return;
+  const f = new Date(); f.setMonth(f.getMonth()-1);
+  document.getElementById('rf').value = f.toISOString().split('T')[0];
+  document.getElementById('rt').value = today();
+}
+function genReport() {
+  const scope = document.getElementById('rscope').value;
+  const from  = document.getElementById('rf').value;
+  const to    = document.getElementById('rt').value;
+  const now   = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  const inRange = t => (!from||t.date>=from) && (!to||t.date<=to);
+  const re = calcRE(); const pc = calcPersonal(); const ra = reAcc();
+
+  function txLine(t, type) {
+    const pt   = (window.DB.payTypes[type]||[]).find(p => p.id===t.ptId);
+    const proj = window.DB.projects.find(p => p.id===t.projId);
+    const recv = window.DB.receivers.find(r => r.id===t.receiverId);
+    const tags = [pt?pt.name:null, recv?recv.name:null, proj?proj.name:null, t.user||null].filter(Boolean).join(' · ');
+    return '  '+(t.type==='income'?'▲':'▼')+' '+fmtD(t.date)+'  '+fmt(t.amt).padStart(10)+'  '+(t.desc||'—')+(tags?' ['+tags+']':'');
+  }
+
+  const L = [];
+  L.push('VAULT — FINANCIAL REPORT');
+  L.push('═'.repeat(42));
+  L.push('Generated : ' + now);
+  L.push('Period    : ' + (from?fmtD(from):'All') + ' → ' + (to?fmtD(to):'Today'));
+
+  if (scope==='all'||scope==='safes') {
+    L.push(''); L.push('── SAFES ──');
+    L.push('RE Safe        : ' + fmt(re.safe));
+    L.push('  Opening      : +' + fmt(re.open));
+    L.push('  Income       : +' + fmt(re.inc));
+    L.push('  Payments     : -' + fmt(re.projPay));
+    L.push('');
+    L.push('Pocket         : ' + fmt(pc.pocket));
+    L.push('  Income       : +' + fmt(pc.income));
+    L.push('  From safe    : +' + fmt(pc.fromSafe));
+    L.push('  To safe      : -' + fmt(pc.toSafe));
+    L.push('  Payments     : -' + fmt(pc.payments));
+    L.push('');
+    L.push('Personal Safe  : ' + fmt(pc.safe));
+    L.push('  Opening      : +' + fmt(pc.opening));
+    L.push('  Received     : +' + fmt(pc.toSafe));
+    L.push('  Withdrawn    : -' + fmt(pc.fromSafe));
+    L.push('  Expenses     : -' + fmt(pc.safeExpenses));
+    if (scope==='safes') { showReport(L.join('\n'), scope); return; }
+  }
+
+  if ((scope==='all'||scope==='re'||scope==='re_proj') && ra) {
+    const reTxs = window.DB.transactions.filter(t => t.aid===ra.id && inRange(t)).sort((a,b)=>a.date.localeCompare(b.date));
+    const rInc  = reTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0);
+    const rPay  = reTxs.filter(t=>t.type==='payment').reduce((s,t)=>s+t.amt,0);
+    if (scope!=='re_proj') {
+      L.push(''); L.push('── REAL ESTATE ──');
+      L.push('INCOME'); reTxs.filter(t=>t.type==='income').forEach(t=>L.push(txLine(t,'re')));
+      L.push(''); L.push('PAYMENTS'); reTxs.filter(t=>t.type==='payment').forEach(t=>L.push(txLine(t,'re')));
+      L.push(''); L.push('Income: '+fmt(rInc)+'  Payments: '+fmt(rPay)+'  Safe: '+fmt(rInc-rPay));
+    }
+    if (scope==='re_proj') {
+      L.push(''); L.push('── RE BY PROJECT ──');
+      window.DB.projects.forEach(p => {
+        const ptxs = reTxs.filter(t=>t.type==='payment'&&t.projId===p.id);
+        const tot  = ptxs.reduce((s,t)=>s+t.amt,0);
+        L.push(''); L.push('📌 ' + p.name);
+        if (!ptxs.length) L.push('  No payments in period');
+        else { ptxs.forEach(t=>L.push(txLine(t,'re'))); L.push('  Total: '+fmt(tot)); }
+      });
+    }
+  }
+
+  ['eng','con'].forEach(type => {
+    if (scope!=='all' && scope!==type) return;
+    const accs = window.DB.accounts.filter(a => a.type===type);
+    if (!accs.length) return;
+    L.push(''); L.push('── ' + TYPE_NAME[type].toUpperCase() + ' ──');
+    accs.forEach(a => {
+      const atx = window.DB.transactions.filter(t=>t.aid===a.id&&inRange(t)).sort((x,y)=>x.date.localeCompare(y.date));
+      const aInc = atx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0);
+      const aPay = atx.filter(t=>t.type==='payment').reduce((s,t)=>s+t.amt,0);
+      L.push('  ' + a.name + (a.client?' ('+a.client+')':''));
+      if (!atx.length) L.push('    No transactions in period');
+      else atx.forEach(t => L.push('  '+txLine(t,type)));
+      L.push('    Income: '+fmt(aInc)+'  Payments: '+fmt(aPay)+'  Balance: '+fmt(aInc-aPay));
+    });
+  });
+
+  if (scope==='all') {
+    const allF = window.DB.transactions.filter(inRange);
+    const gI   = allF.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0);
+    const gP   = allF.filter(t=>t.type==='payment').reduce((s,t)=>s+t.amt,0);
+    L.push(''); L.push('═'.repeat(42));
+    L.push('TOTAL INCOME   : ' + fmt(gI));
+    L.push('TOTAL PAYMENTS : ' + fmt(gP));
+    L.push('NET            : ' + fmt(gI-gP));
+  }
+
+  showReport(L.join('\n'), scope);
+}
+function showReport(txt, scope) {
+  window._repTxt = txt;
+  document.getElementById('rep-out').textContent = txt;
+  const scopeEl = document.getElementById('rscope');
+  document.getElementById('rep-lbl').textContent = '// ' + (scopeEl ? scopeEl.options[scopeEl.selectedIndex].text : 'report');
+  document.getElementById('rep-placeholder').style.display = 'none';
+  openSheet('rep'); toast('Report ready ✓');
+}
+function copyRep() {
+  if (!window._repTxt) { toast('Generate first','er'); return; }
+  navigator.clipboard.writeText(window._repTxt).then(()=>toast('Copied ✓')).catch(()=>{
+    const ta=document.createElement('textarea'); ta.value=window._repTxt;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Copied ✓');
+  });
+}
+function waRep() {
+  if (!window._repTxt) { toast('Generate first','er'); return; }
+  window.open('https://wa.me/?text='+encodeURIComponent(window._repTxt),'_blank');
+}
+
+/* ════════════════════════════════════════
+   SETTINGS
+════════════════════════════════════════ */
+function renderSettings() {
+  const dot    = document.getElementById('fb-dot');
+  const status = document.getElementById('fb-status');
+  if (!dot||!status) return;
+  if (window._fbReady) {
+    dot.style.background    = 'var(--acc)';
+    status.textContent      = 'Connected — ' + (window.DB.transactions||[]).length + ' tx, ' + (window.DB.accounts||[]).length + ' accounts';
+    status.style.color      = 'var(--acc)';
+  } else {
+    dot.style.background    = 'var(--gold)';
+    status.textContent      = 'Connecting...';
+    status.style.color      = 'var(--txt3)';
+  }
+}
+async function forceSync() {
+  const btn = document.getElementById('sync-btn');
+  const status = document.getElementById('fb-status');
+  const dot    = document.getElementById('fb-dot');
+  btn.textContent = 'Syncing...'; btn.disabled = true;
+  if (!window._fbReady) {
+    toast('Firebase not ready','er');
+    btn.textContent='Force Sync Now'; btn.disabled=false; return;
+  }
+  try {
+    window.DB._ts = Date.now();
+    lsSave(window.DB);
+    await window._fbSave(window.DB);
+    const t = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    status.textContent = 'Synced at ' + t + ' ✓';
+    status.style.color = 'var(--acc)';
+    dot.style.background = 'var(--acc)';
+    toast('Synced ✓');
+  } catch(e) {
+    status.textContent = 'Sync failed: ' + e.message;
+    status.style.color = 'var(--red)';
+    toast('Sync failed','er');
+  }
+  btn.textContent='Force Sync Now'; btn.disabled=false;
+}
+function exportData() {
+  const blob = new Blob([JSON.stringify(window.DB,null,2)],{type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const d    = new Date();
+  a.href     = url;
+  a.download = 'vault-backup-' + d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + '.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast('Backup downloaded ✓');
+}
+function importData(input) {
+  const file = input.files[0]; if (!file) return;
+  if (!confirm('Import backup? This will overwrite all current data.')) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const d = JSON.parse(e.target.result);
+      if (!d.accounts && !d.transactions) { toast('Invalid backup file','er'); return; }
+      window.DB = fixDB(d);
+      save(); refreshAll(); renderPersonal();
+      toast('Imported ✓');
+    } catch(err) { toast('Failed to read file','er'); }
+  };
+  reader.readAsText(file); input.value='';
+}
+
+/* ════════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════════ */
+let _cv = 'home';
+function nav(id, el) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
+  document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
+  document.getElementById('v-' + id).classList.add('on');
+  document.getElementById('nav-' + id).classList.add('on');
+  document.getElementById('scr').scrollTop = 0;
+  _cv = id;
+  if (id==='home')     { renderSafes(); renderSummary(); renderAccList(); }
+  if (id==='accounts') { renderManage(); }
+  if (id==='database') { renderDatabase(); }
+  if (id==='personal') { renderPersonal(); }
+  if (id==='report')   { initReportDates(); }
+  if (id==='settings') { renderSettings(); }
+}
+
+/* ════════════════════════════════════════
+   SHEETS
+════════════════════════════════════════ */
+function openSheet(id) {
+  document.getElementById('sov-' + id).classList.add('on');
+  document.getElementById('sht-' + id).classList.add('on');
+  if (id==='tx') setTimeout(()=>document.getElementById('tx-amt').focus(),350);
+}
+function closeSheet(id) {
+  document.getElementById('sov-' + id).classList.remove('on');
+  document.getElementById('sht-' + id).classList.remove('on');
+}
+
+/* ════════════════════════════════════════
+   TOAST
+════════════════════════════════════════ */
+let _tt;
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'on ' + type;
+  clearTimeout(_tt); _tt = setTimeout(() => el.className='', 2600);
+}
+
+/* ════════════════════════════════════════
+   PWA — SERVICE WORKER + INSTALL
+════════════════════════════════════════ */
+if ('serviceWorker' in navigator) {
+  const sw = "const C='vault-v2';self.addEventListener('install',e=>{self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))});";
+  navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'text/javascript'})),{scope:'./'}).catch(()=>{});
+}
+let _dp = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); _dp = e; });
+window.addEventListener('appinstalled', () => { _dp = null; });
+
+/* ════════════════════════════════════════
+   OFFLINE INDICATOR
+════════════════════════════════════════ */
+function updateOnline() {
+  const dot = document.getElementById('sync-dot');
+  if (!dot) return;
+  if (!navigator.onLine) { dot.className='err'; }
+}
+window.addEventListener('online',  () => { syncDot('idle'); });
+window.addEventListener('offline', () => { syncDot('err');  });
+</script>
+</body>
+</html>
